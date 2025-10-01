@@ -1,0 +1,23 @@
+{
+  "name": "Bloc de Notas PWA",
+  "short_name": "Notas",
+  "description": "Crea, edita y organiza tus notas aún sin conexión.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f5f5",
+  "theme_color": "#3f51b5",
+  "icons": [
+    {
+      "src": "app-notas-logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "app-notas-logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

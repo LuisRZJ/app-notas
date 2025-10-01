@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3f51b5">
+    <title>Bloc de Notas PWA</title>
+    <link rel="manifest" href="PWA/manifest.webmanifest">
+    <link rel="icon" type="image/png" href="PWA/app-notas-logo.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div>
+            <h1>Bloc de Notas</h1>
+            <p>Guarda, edita y organiza tus notas, incluso sin conexión.</p>
+        </div>
+        <button id="installButton" class="primary" hidden>Instalar app</button>
+    </header>
+
+    <main>
+        <section class="note-composer">
+            <h2 id="formTitle">Nueva nota</h2>
+            <form id="noteForm" autocomplete="off">
+                <input type="hidden" id="noteId">
+                <label for="noteTitle">Título</label>
+                <input type="text" id="noteTitle" name="noteTitle" placeholder="Título de la nota" required>
+
+                <label for="noteContent">Contenido</label>
+                <textarea id="noteContent" name="noteContent" placeholder="Escribe tu nota..." rows="6" required></textarea>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary" id="saveButton">Guardar nota</button>
+                    <button type="button" id="cancelEditButton" class="secondary" hidden>Cancelar edición</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="notes-section">
+            <div class="notes-header">
+                <h2>Tus notas</h2>
+                <input type="search" id="searchInput" placeholder="Buscar por título o contenido..." aria-label="Buscar notas">
+            </div>
+            <p id="notesEmptyState" class="empty-state">Todavía no hay notas guardadas.</p>
+            <ul id="notesList" class="notes-list" aria-live="polite"></ul>
+        </section>
+    </main>
+
+    <template id="noteItemTemplate">
+        <li class="note-card">
+            <article>
+                <header>
+                    <h3 class="note-title"></h3>
+                    <time class="note-updated" datetime=""></time>
+                </header>
+                <p class="note-content"></p>
+                <footer>
+                    <button class="secondary edit-note" type="button">Editar</button>
+                    <button class="danger delete-note" type="button">Eliminar</button>
+                </footer>
+            </article>
+        </li>
+    </template>
+
+    <section id="syncStatus" class="sync-status" aria-live="assertive"></section>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
