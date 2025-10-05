@@ -6,6 +6,32 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+let deferredInstallPrompt = null;
+let installBtnEl = null;
+
+const showInstallButton = () => {
+    if (installBtnEl) {
+        installBtnEl.classList.remove('hidden');
+    }
+};
+
+const hideInstallButton = () => {
+    if (installBtnEl) {
+        installBtnEl.classList.add('hidden');
+    }
+};
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    showInstallButton();
+});
+
+window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    hideInstallButton();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const pageType = document.body.dataset.page || 'notes';
     // Elementos UI
@@ -48,6 +74,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedTagsPills = document.getElementById('selected-tags-pills');
     const tagsDropdown = document.getElementById('tags-dropdown');
     const multiSelectPlaceholder = document.getElementById('multi-select-placeholder');
+
+    installBtnEl = document.getElementById('install-btn');
+    if (installBtnEl && deferredInstallPrompt) {
+        showInstallButton();
+    }
+    if (installBtnEl) {
+        installBtnEl.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) {
+                return;
+            }
+            installBtnEl.disabled = true;
+            installBtnEl.classList.add('opacity-60', 'cursor-not-allowed');
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            installBtnEl.disabled = false;
+            installBtnEl.classList.remove('opacity-60', 'cursor-not-allowed');
+            if (outcome === 'accepted') {
+                hideInstallButton();
+            }
+        });
+    }
 
 
     let db;
