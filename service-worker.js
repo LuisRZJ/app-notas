@@ -8,8 +8,8 @@ const LOCAL_RESOURCES = [
   './ajustes.html',
   './app.js',
   './service-worker.js',
-  './pwa/logo-app.png',
-  './pwa/manifest.json'
+  './logo-app.png',
+  './manifest.json'
 ];
 
 const REMOTE_RESOURCES = [
