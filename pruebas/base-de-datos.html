@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Notas con Supabase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10">
+
+  <h1 class="text-3xl font-bold mb-6 text-gray-800">Mis Notas</h1>
+
+  <!-- Formulario de nueva nota -->
+  <div class="w-full max-w-lg bg-white p-6 rounded-lg shadow-md mb-8">
+    <input id="noteTitle" type="text" placeholder="Título de la nota"
+      class="w-full mb-3 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <textarea id="noteContent" placeholder="Contenido de la nota" rows="4"
+      class="w-full mb-3 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+    <button id="addNoteBtn"
+      class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">Agregar nota</button>
+  </div>
+
+  <!-- Lista de notas -->
+  <div id="notesList" class="w-full max-w-lg space-y-4"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabaseUrl = 'https://zpdidzngdgesfweplfvf.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZGlkem5nZGdlc2Z3ZXBsZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODQyNTcsImV4cCI6MjA3NTI2MDI1N30.mqNaYyJZaGK0yX_IeJlwj921cC6Trn63lleYEBRuwgg'
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const notesList = document.getElementById('notesList')
+    const addNoteBtn = document.getElementById('addNoteBtn')
+    const noteTitle = document.getElementById('noteTitle')
+    const noteContent = document.getElementById('noteContent')
+
+    // Listar notas
+    async function fetchNotes() {
+      const { data, error } = await supabase
+        .from('todos')
+        .select()
+        .order('created_at', { ascending: false })
+      if (error) return console.error(error)
+      notesList.innerHTML = ''
+      data.forEach(note => {
+        const div = document.createElement('div')
+        div.className = 'bg-white p-4 rounded-lg shadow flex flex-col space-y-2'
+        div.innerHTML = `
+          <div class="flex justify-between items-start">
+            <strong class="text-lg text-gray-800">${note.title}</strong>
+            <div class="flex space-x-2">
+              <button class="bg-yellow-400 px-2 py-1 rounded hover:bg-yellow-500 transition" onclick="editNote('${note.id}')">Editar</button>
+              <button class="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600 transition" onclick="deleteNote('${note.id}')">Borrar</button>
+            </div>
+          </div>
+          <p class="text-gray-700">${note.content}</p>
+          <small class="text-gray-400">${new Date(note.created_at).toLocaleString()}</small>
+        `
+        notesList.appendChild(div)
+      })
+    }
+
+    // Agregar nota
+    addNoteBtn.addEventListener('click', async () => {
+      const title = noteTitle.value.trim()
+      const content = noteContent.value.trim()
+      if (!title || !content) return alert('Completa título y contenido')
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([{ title, content }])
+      if (error) return console.error(error)
+      noteTitle.value = ''
+      noteContent.value = ''
+      fetchNotes()
+    })
+
+    // Borrar nota
+    window.deleteNote = async (id) => {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id)
+      if (error) return console.error(error)
+      fetchNotes()
+    }
+
+    // Editar nota
+    window.editNote = async (id) => {
+      const newTitle = prompt('Nuevo título:')
+      const newContent = prompt('Nuevo contenido:')
+      if (newTitle === null || newContent === null) return
+      const { error } = await supabase
+        .from('todos')
+        .update({ title: newTitle, content: newContent })
+        .eq('id', id)
+      if (error) return console.error(error)
+      fetchNotes()
+    }
+
+    fetchNotes()
+  </script>
+</body>
+</html>
