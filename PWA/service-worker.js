@@ -1,73 +1,77 @@
-const CACHE_NAME = "notes-pwa-cache-v2";
-const OFFLINE_URL = "./index.html";
-const ASSETS_TO_CACHE = [
-    "./",
-    "./index.html",
-    "./style.css",
-    "./app.js",
-    "./PWA/manifest.webmanifest",
-    "./PWA/app-notas-logo.png"
+'use strict';
+
+const CACHE_VERSION = 'v1';
+const CACHE_NAME = `notes-app-${CACHE_VERSION}`;
+const LOCAL_RESOURCES = [
+  '/',
+  '/index.html',
+  '/historial.html',
+  '/ajustes.html',
+  '/app.js',
+  '/pwa/logo-app.png'
 ];
 
-self.addEventListener("install", (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).then(() => self.skipWaiting())
-    );
+const REMOTE_RESOURCES = [
+  'https://cdn.tailwindcss.com',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+  'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3WmMLNSvZM.woff2'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async cache => {
+      await cache.addAll(LOCAL_RESOURCES);
+      await Promise.allSettled(
+        REMOTE_RESOURCES.map(async url => {
+          try {
+            await cache.add(new Request(url, { mode: 'no-cors' }));
+          } catch (error) {
+            console.warn('[ServiceWorker] No se pudo cachear recurso remoto:', url, error);
+          }
+        })
+      );
+    })
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) =>
-            Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
-                    return null;
-                })
-            )
-        ).then(() => self.clients.claim())
-    );
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => Promise.all(
+      cacheNames
+        .filter(cacheName => cacheName.startsWith('notes-app-') && cacheName !== CACHE_NAME)
+        .map(cacheName => caches.delete(cacheName))
+    ))
+  );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-    if (event.request.method !== "GET") {
-        return;
-    }
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') {
+    return;
+  }
 
-    if (!event.request.url.startsWith("http")) {
-        return;
-    }
-
-    event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
-                if (!networkResponse || networkResponse.status === 0) {
-                    throw new Error("Invalid network response");
-                }
-
-                const clonedResponse = networkResponse.clone();
-                const requestUrl = new URL(event.request.url);
-                if (requestUrl.origin === self.location.origin) {
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clonedResponse);
-                    });
-                }
-
-                return networkResponse;
-            })
-            .catch(() =>
-                caches.match(event.request).then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-
-                    if (event.request.mode === "navigate") {
-                        return caches.match(OFFLINE_URL);
-                    }
-
-                    return Promise.reject("No cached response available.");
-                })
-            )
-    );
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const shouldCache = response && (response.ok || response.type === 'opaque');
+        if (shouldCache) {
+          const clonedResponse = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, clonedResponse);
+          });
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cachedResponse = await caches.match(event.request, { ignoreSearch: true });
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        throw new Error('Network request failed and no cache available.');
+      })
+  );
 });
