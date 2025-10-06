@@ -147,6 +147,160 @@
         body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
+        .weekly-overview-card {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+            border-radius: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .weekly-overview-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%);
+            pointer-events: none;
+        }
+        .weekly-day {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+        .weekly-day:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        }
+        .weekly-day .status-dot {
+            transition: all 0.2s ease;
+        }
+        .weekly-day.active {
+            border-color: rgba(16, 185, 129, 0.6) !important;
+            background: linear-gradient(160deg, rgba(16, 185, 129, 0.18), rgba(56, 189, 248, 0.18));
+        }
+        .weekly-day.active .status-dot {
+            background-color: rgba(16, 185, 129, 0.18);
+            border-color: rgba(16, 185, 129, 0.75);
+            color: #047857;
+        }
+        .weekly-day.inactive {
+            border-color: rgba(148, 163, 184, 0.35);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .weekly-day.inactive .status-dot {
+            background-color: rgba(226, 232, 240, 0.7);
+            border-color: rgba(148, 163, 184, 0.45);
+            color: rgba(100, 116, 139, 1);
+        }
+        .weekly-day .status-text {
+            transition: color 0.2s ease;
+        }
+        .weekly-day.active .status-text {
+            color: #115e59 !important;
+            font-weight: 600;
+        }
+        body[data-theme="dark"] .weekly-overview-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.82));
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        body[data-theme="dark"] .weekly-overview-card::after {
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 55%);
+        }
+        body[data-theme="dark"] .weekly-day.inactive {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(71, 85, 105, 0.5);
+        }
+        body[data-theme="dark"] .weekly-day.active {
+            background: linear-gradient(160deg, rgba(74, 222, 128, 0.24), rgba(45, 212, 191, 0.22));
+            border-color: rgba(52, 211, 153, 0.65);
+            box-shadow: 0 18px 36px rgba(14, 116, 144, 0.25);
+        }
+        body[data-theme="dark"] .weekly-day.active .status-dot {
+            color: #ccfbf1;
+        }
+        body[data-theme="dark"] .weekly-day.inactive .status-dot {
+            background-color: rgba(30, 41, 59, 0.6);
+            border-color: rgba(75, 85, 99, 0.45);
+            color: rgba(148, 163, 184, 0.85);
+        }
+        .history-search-card {
+            border-radius: 1.25rem;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.02), rgba(37, 99, 235, 0.05));
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: 0 28px 45px rgba(15, 23, 42, 0.08);
+        }
+        .history-search-card:focus-within {
+            border-color: rgba(37, 99, 235, 0.45);
+            box-shadow: 0 32px 56px rgba(37, 99, 235, 0.12);
+        }
+        .history-search-input {
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        .history-search-input:focus {
+            border-color: rgba(37, 99, 235, 0.65);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.14);
+        }
+        .history-search-clear {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .history-search-clear:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(148, 163, 184, 0.25);
+        }
+        body[data-theme="dark"] .history-search-card {
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.18), rgba(15, 23, 42, 0.82));
+            border-color: rgba(148, 163, 184, 0.3);
+            box-shadow: 0 28px 48px rgba(2, 6, 23, 0.6);
+        }
+        body[data-theme="dark"] .history-search-input {
+            background: rgba(15, 23, 42, 0.75);
+            border-color: rgba(71, 85, 105, 0.55);
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .history-search-input:focus {
+            border-color: rgba(96, 165, 250, 0.75);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+        }
+        body[data-theme="dark"] .history-search-card .text-slate-500 {
+            color: rgba(203, 213, 225, 0.8) !important;
+        }
+        .history-filters-grid {
+            border-radius: 1.25rem;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 0 24px 42px rgba(15, 23, 42, 0.07);
+        }
+        .tag-filter-dropdown {
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            transform-origin: top center;
+        }
+        .tag-filter-dropdown[data-open="true"] {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+        .tag-filter-dropdown:not([data-open="true"]) {
+            opacity: 0;
+            transform: scale(0.96);
+            pointer-events: none;
+        }
+        .tag-filter-pill {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .tag-filter-pill:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
+        body[data-theme="dark"] .history-filters-grid {
+            background: linear-gradient(140deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.88));
+            border-color: rgba(148, 163, 184, 0.25);
+            box-shadow: 0 28px 48px rgba(2, 6, 23, 0.55);
+        }
+        body[data-theme="dark"] .tag-filter-dropdown {
+            background-color: rgba(15, 23, 42, 0.96);
+            border-color: rgba(71, 85, 105, 0.6);
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800" data-page="history" data-theme="light">
@@ -157,6 +311,141 @@
             <p class="text-slate-500 mt-2">Todas tus notas registradas, organizadas por fecha.</p>
         </header>
 
+        <section id="weekly-overview" class="weekly-overview-card border border-slate-200/60 shadow-xl px-6 py-6 mb-10 relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-check-2 text-blue-600"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+                        Actividad de esta semana
+                    </h2>
+                    <p id="weekly-activity-summary" class="text-sm text-slate-500 mt-1">Sin registros esta semana todavía.</p>
+                </div>
+                <div class="text-sm text-slate-600 flex items-center gap-3 md:self-start">
+                    <span class="uppercase tracking-wide text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">Semana actual</span>
+                    <span id="weekly-week-range" class="text-base font-semibold text-slate-700">--</span>
+                </div>
+            </div>
+            <div id="weekly-activity-days" class="relative z-10 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 mt-6">
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="0">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Lun</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="1">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mar</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="2">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mié</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="3">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Jue</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="4">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Vie</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="5">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sáb</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+                <div class="weekly-day inactive flex flex-col items-center gap-2 p-3 rounded-2xl border text-center" data-day-index="6">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Dom</span>
+                    <div class="status-dot h-12 w-12 rounded-full border flex items-center justify-center">
+                        <svg data-role="status-icon-check" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg data-role="status-icon-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                    </div>
+                    <span data-role="status-text" class="status-text text-xs text-slate-500">Sin registros</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="history-search-card px-6 py-5 mb-10">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search text-blue-600"><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></svg>
+                        Buscar notas
+                    </h2>
+                    <p class="text-sm text-slate-500 mt-1">Escribe un título para filtrar rápidamente tus registros.</p>
+                </div>
+                <div class="w-full md:w-auto">
+                    <label class="sr-only" for="history-search-input">Buscar notas por título</label>
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex-1 md:w-80">
+                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.9 5.5H4.5l4 3-1.9 5.5L12 14l5.4 3.5L15.5 11l4-3h-5.6Z"/></svg>
+                            </span>
+                            <input id="history-search-input" type="search" placeholder="Buscar por título..." class="history-search-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm font-medium text-slate-700 focus:outline-none" autocomplete="off">
+                        </div>
+                        <button id="history-search-clear-btn" type="button" class="history-search-clear px-4 py-3 rounded-2xl bg-white text-slate-600 text-sm font-semibold border border-slate-200 shadow-sm hover:bg-slate-50 focus:outline-none">Limpiar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="history-filters" class="history-filters-grid px-6 py-6 mb-10">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-filter"><path d="m9 18 6-6-6-6"/></svg>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Filtrar por etiquetas</h2>
+                        <p class="text-sm text-slate-500">Selecciona una o varias etiquetas para refinar el historial.</p>
+                    </div>
+                </div>
+                <div class="w-full md:w-auto">
+                    <div class="relative" id="tag-filter-wrapper">
+                        <button id="tag-filter-toggle" type="button" class="w-full md:w-80 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none">
+                            <span id="tag-filter-toggle-label" class="truncate">Selecciona etiquetas…</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div id="tag-filter-dropdown" class="tag-filter-dropdown absolute z-20 mt-2 w-full md:w-80 rounded-2xl border border-slate-200 bg-white shadow-xl p-4 space-y-3" data-open="false">
+                            <div id="tag-filter-empty" class="hidden text-sm text-slate-500 text-center py-3">
+                                Aún no tienes etiquetas disponibles. Agrega etiquetas en la sección de notas.
+                            </div>
+                            <div id="tag-filter-options" class="hidden max-h-60 overflow-y-auto space-y-2"></div>
+                            <div id="tag-filter-selected-empty" class="hidden text-sm text-slate-500 text-center py-3">
+                                Selecciona etiquetas para filtrar.
+                            </div>
+                            <div class="flex justify-between gap-2 pt-2 border-t border-slate-200">
+                                <button id="tag-filter-clear" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-slate-100">Limpiar selección</button>
+                                <button id="tag-filter-apply" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700">Aplicar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tag-filter-summary" class="mt-3 hidden flex flex-wrap gap-2">
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <main id="history-container" class="space-y-8">
         </main>
 
@@ -164,6 +453,12 @@
              <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history mx-auto text-slate-400 mb-4"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <h3 class="text-xl font-semibold text-slate-600">Aún no hay historial</h3>
             <p class="text-slate-500">Tus notas aparecerán aquí a medida que las vayas creando.</p>
+        </div>
+
+        <div id="history-search-empty" class="text-center py-12 hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-x mx-auto text-slate-400 mb-4"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><path d="M15 11a4 4 0 1 0-4 4"/><path d="M17.5 17.5 22 22"/></svg>
+            <h3 class="text-xl font-semibold text-slate-600">Sin coincidencias</h3>
+            <p class="text-slate-500">No encontramos notas con los filtros aplicados. Ajusta tu búsqueda o selecciona otras etiquetas.</p>
         </div>
     </div>
 

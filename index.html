@@ -73,6 +73,23 @@
             opacity: 0.5;
             background: #e0e7ff !important;
         }
+        #user-greeting {
+            display: inline-block;
+        }
+        .greeting-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .greeting-morning {
+            background-image: linear-gradient(135deg, #f97316, #facc15);
+        }
+        .greeting-afternoon {
+            background-image: linear-gradient(135deg, #22d3ee, #6366f1);
+        }
+        .greeting-night {
+            background-image: linear-gradient(135deg, #38bdf8, #0f172a);
+        }
         /* Estilos para el scroll dentro del modal del formulario */
         #note-form-modal-content {
             max-height: 90vh;
@@ -163,8 +180,9 @@
 
         <div id="page-notes">
             <header class="text-center mb-8">
-                <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Mis Notas</h1>
-                <p class="text-slate-500 mt-2">Un lugar simple para tus ideas.</p>
+                <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Notas</h1>
+                <p class="text-slate-500 mt-2">Un lugar simple para los registros.</p>
+                <p id="user-greeting" class="mt-4 text-xl font-semibold">Hola, Usuario</p>
             </header>
 
             <div class="mb-8">

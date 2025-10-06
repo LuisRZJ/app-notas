@@ -56,10 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBirthdayBtn = document.getElementById('save-birthday-btn');
     const clearBirthdayBtn = document.getElementById('clear-birthday-btn');
     const birthdayStatusEl = document.getElementById('birthday-status');
+    const userNameInput = document.getElementById('user-name-input');
+    const saveUserNameBtn = document.getElementById('save-user-name-btn');
+    const clearUserNameBtn = document.getElementById('clear-user-name-btn');
+    const userNameStatusEl = document.getElementById('user-name-status');
     const themeSelect = document.getElementById('theme-select');
     const metaThemeColorEl = document.querySelector('meta[name="theme-color"]');
     const rootElement = document.documentElement;
     const systemThemeMedia = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const importNotesBtn = document.getElementById('import-notes-btn');
+    const importFileInput = document.getElementById('import-file-input');
     const exportNotesBtn = document.getElementById('export-notes-btn');
     const clearAllDataBtn = document.getElementById('clear-all-data-btn');
     const newTagInput = document.getElementById('new-tag-input');
@@ -76,6 +82,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const historyContainer = document.getElementById('history-container');
     const noHistoryMessage = document.getElementById('no-history-message');
+    const weeklyOverviewSection = document.getElementById('weekly-overview');
+    const weeklyActivitySummary = document.getElementById('weekly-activity-summary');
+    const weeklyWeekRange = document.getElementById('weekly-week-range');
+    const weeklyActivityDaysContainer = document.getElementById('weekly-activity-days');
+    const weeklyDayElements = weeklyActivityDaysContainer ? Array.from(weeklyActivityDaysContainer.querySelectorAll('.weekly-day')) : [];
+    const historySearchInput = document.getElementById('history-search-input');
+    const historySearchClearBtn = document.getElementById('history-search-clear-btn');
+    const historySearchEmptyMessage = document.getElementById('history-search-empty');
+    const tagFilterToggle = document.getElementById('tag-filter-toggle');
+    const tagFilterToggleLabel = document.getElementById('tag-filter-toggle-label');
+    const tagFilterDropdown = document.getElementById('tag-filter-dropdown');
+    const tagFilterOptions = document.getElementById('tag-filter-options');
+    const tagFilterEmpty = document.getElementById('tag-filter-empty');
+    const tagFilterSelectedEmpty = document.getElementById('tag-filter-selected-empty');
+    const tagFilterClearBtn = document.getElementById('tag-filter-clear');
+    const tagFilterApplyBtn = document.getElementById('tag-filter-apply');
+    const tagFilterSummary = document.getElementById('tag-filter-summary');
 
     const noteFormModal = document.getElementById('note-form-modal');
     const noteFormModalContent = document.getElementById('note-form-modal-content');
@@ -118,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SETTINGS_STORE = 'settings';
     const BIRTHDAY_KEY = 'birthday';
+    const USER_NAME_KEY = 'userName';
     const THEME_KEY = 'theme';
     const DEFAULT_THEME = 'light';
     const THEME_OPTIONS = new Set(['light', 'dark', 'system']);
@@ -130,8 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedTag = null;
     let storageChart = null;
     let birthdayStatusTimeout = null;
+    let userNameStatusTimeout = null;
     let currentThemePreference = DEFAULT_THEME;
     let pendingThemePreference = null;
+    let historySearchTerm = '';
+    let availableTags = [];
+    let pendingTagSelection = new Set();
+    let activeTagFilters = new Set();
 
     const sanitizeThemePreference = (value) => THEME_OPTIONS.has(value) ? value : DEFAULT_THEME;
 
@@ -171,6 +200,63 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('No se pudo guardar la preferencia de tema.', tx.error);
         };
     };
+
+    if (historySearchInput) {
+        historySearchInput.addEventListener('input', (event) => {
+            historySearchTerm = event.target.value ?? '';
+            renderHistory();
+        });
+    }
+
+    if (tagFilterDropdown) {
+        const isInitiallyOpen = tagFilterDropdown.dataset.open === 'true';
+        tagFilterDropdown.classList.toggle('hidden', !isInitiallyOpen);
+        tagFilterDropdown.style.display = isInitiallyOpen ? 'block' : 'none';
+        if (tagFilterToggle) {
+            tagFilterToggle.setAttribute('aria-expanded', isInitiallyOpen ? 'true' : 'false');
+        }
+    }
+
+    if (tagFilterToggle) {
+        tagFilterToggle.addEventListener('click', () => {
+            toggleTagFilterDropdown();
+        });
+    }
+
+    if (tagFilterApplyBtn) {
+        tagFilterApplyBtn.addEventListener('click', () => {
+            applyPendingTagSelection();
+        });
+    }
+
+    if (tagFilterClearBtn) {
+        tagFilterClearBtn.addEventListener('click', () => {
+            clearTagFilters({ keepDropdownOpen: true });
+        });
+    }
+
+    if (tagFilterDropdown) {
+        document.addEventListener('click', (event) => {
+            if (!tagFilterDropdown || !tagFilterToggle) return;
+            if (tagFilterDropdown.dataset.open !== 'true') return;
+            const clickTarget = event.target;
+            if (!(tagFilterDropdown.contains(clickTarget) || tagFilterToggle.contains(clickTarget))) {
+                toggleTagFilterDropdown(false);
+            }
+        });
+    }
+
+    if (historySearchClearBtn) {
+        historySearchClearBtn.addEventListener('click', () => {
+            if (historySearchTerm.trim().length === 0) return;
+            historySearchTerm = '';
+            if (historySearchInput) {
+                historySearchInput.value = '';
+                historySearchInput.focus();
+            }
+            renderHistory();
+        });
+    }
 
     const persistThemePreference = (preference) => {
         const sanitizedPreference = sanitizeThemePreference(preference);
@@ -315,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (pageType) {
             case 'notes':
                 renderNotes();
+                loadUserNameGreeting();
                 break;
             case 'history':
                 renderHistory();
@@ -323,9 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateStorageInfo();
                 renderTags();
                 loadBirthday();
+                loadUserName();
+                loadUserNameGreeting();
                 break;
             default:
                 renderNotes();
+                loadUserNameGreeting();
         }
     };
 
@@ -341,6 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const requestToPromise = (request) => new Promise((resolve, reject) => {
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
+    });
+
+    const transactionToPromise = (transaction) => new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Transacción abortada.'));
     });
 
     const getDaysInMonth = (month) => {
@@ -371,6 +467,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (birthdayStatusEl) {
                 birthdayStatusEl.textContent = '';
                 birthdayStatusEl.classList.remove('text-green-600', 'text-red-600');
+            }
+        }, 4000);
+    };
+
+    const showUserNameStatus = (message, type = 'info') => {
+        if (!userNameStatusEl) return;
+        userNameStatusEl.textContent = message;
+        userNameStatusEl.classList.remove('text-green-600', 'text-red-600');
+        if (type === 'success') {
+            userNameStatusEl.classList.add('text-green-600');
+        } else if (type === 'error') {
+            userNameStatusEl.classList.add('text-red-600');
+        }
+        if (userNameStatusTimeout) {
+            clearTimeout(userNameStatusTimeout);
+        }
+        userNameStatusTimeout = setTimeout(() => {
+            if (userNameStatusEl) {
+                userNameStatusEl.textContent = '';
+                userNameStatusEl.classList.remove('text-green-600', 'text-red-600');
             }
         }, 4000);
     };
@@ -458,6 +574,85 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
+    const loadUserName = () => {
+        if (!db || !userNameInput) return;
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        tx.objectStore(SETTINGS_STORE).get(USER_NAME_KEY).onsuccess = (event) => {
+            const storedValue = event.target.result?.value;
+            if (typeof storedValue === 'string') {
+                userNameInput.value = storedValue;
+                showUserNameStatus('Nombre cargado correctamente.', 'success');
+            } else {
+                userNameInput.value = '';
+            }
+        };
+    };
+
+    const loadUserNameGreeting = () => {
+        if (!db) {
+            updateUserGreeting();
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            updateUserGreeting();
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        tx.objectStore(SETTINGS_STORE).get(USER_NAME_KEY).onsuccess = (event) => {
+            updateUserGreeting(event.target.result?.value);
+        };
+        tx.onerror = () => {
+            updateUserGreeting();
+        };
+    };
+
+    const saveUserName = () => {
+        if (!db || !userNameInput) {
+            showUserNameStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showUserNameStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const name = userNameInput.value.trim();
+        if (!name) {
+            showUserNameStatus('Escribe un nombre antes de guardarlo.', 'error');
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).put({ key: USER_NAME_KEY, value: name });
+        tx.oncomplete = () => {
+            showUserNameStatus('Nombre guardado correctamente.', 'success');
+            loadUserNameGreeting();
+        };
+        tx.onerror = () => {
+            showUserNameStatus('No se pudo guardar el nombre.', 'error');
+        };
+    };
+
+    const clearUserName = () => {
+        if (!db || !userNameInput) {
+            showUserNameStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showUserNameStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).delete(USER_NAME_KEY);
+        tx.oncomplete = () => {
+            userNameInput.value = '';
+            showUserNameStatus('Nombre eliminado.', 'success');
+            loadUserNameGreeting();
+        };
+        tx.onerror = () => {
+            showUserNameStatus('No se pudo eliminar el nombre.', 'error');
+        };
+    };
+
     function isSettingsStoreReady() {
         return Boolean(db && db.objectStoreNames.contains(SETTINGS_STORE));
     }
@@ -533,7 +728,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const localUsage = Math.max(localStorageUsage ?? 0, 0);
         const otherUsage = Math.max(usage - (indexedUsage + localUsage), 0);
         const available = Math.max(quota - usage, 0);
-        const total = indexedUsage + localUsage + otherUsage + available;
+        const totalUsage = indexedUsage + localUsage + otherUsage;
+        const totalCapacity = (typeof quota === 'number' && quota > 0)
+            ? quota
+            : totalUsage + available;
+
+        const total = totalUsage + available;
 
         if (total <= 0) {
             destroyStorageChart();
@@ -542,8 +742,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const data = [indexedUsage, localUsage, otherUsage, available];
-        const labels = ['IndexedDB', 'LocalStorage', 'Otros Datos', 'Disponible'];
-        const backgroundColors = ['#2563eb', '#16a34a', '#fb923c', '#94a3b8'];
+        const labels = ['IndexedDB', 'LocalStorage', 'Otros datos', 'Disponible'];
+        const backgroundColors = ['#2563eb', '#16a34a', '#fb923c', 'rgba(148, 163, 184, 0.35)'];
 
         if (!storageChart) {
             storageChart = new Chart(storageChartCanvas, {
@@ -568,14 +768,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             labels: {
                                 color: '#0f172a',
                                 usePointStyle: true,
-                                boxWidth: 10
+                                boxWidth: 10,
+                                filter: (item) => item.text !== 'Disponible'
                             }
                         },
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
                                     const value = context.raw;
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    const denominator = totalCapacity > 0 ? totalCapacity : total;
+                                    const percentage = denominator > 0 ? ((value / denominator) * 100).toFixed(1) : 0;
                                     return `${context.label}: ${formatBytes(value)} (${percentage}%)`;
                                 }
                             }
@@ -586,12 +788,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             storageChart.data.labels = labels;
             storageChart.data.datasets[0].data = data;
+            storageChart.data.datasets[0].backgroundColor = backgroundColors;
             storageChart.update();
         }
 
         if (storageChartMessageEl) {
-            const availablePercent = total > 0 ? (available / total) * 100 : 0;
-            storageChartMessageEl.textContent = `Disponible: ${formatBytes(available)} (${availablePercent.toFixed(1)}%)`;
+            const denominator = totalCapacity > 0 ? totalCapacity : total;
+            const availablePercent = denominator > 0 ? (available / denominator) * 100 : 0;
+            const usedPercent = denominator > 0 ? (totalUsage / denominator) * 100 : 0;
+            storageChartMessageEl.textContent = `Uso total: ${formatBytes(totalUsage)} (${usedPercent.toFixed(1)}%) · Disponible: ${formatBytes(available)} (${availablePercent.toFixed(1)}%)`;
             storageChartMessageEl.classList.remove('hidden');
         }
     };
@@ -659,6 +864,20 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
+    const getGreetingPeriod = (date = new Date()) => {
+        const hour = date.getHours();
+        if (hour >= 5 && hour < 12) return 'morning';
+        if (hour >= 12 && hour < 19) return 'afternoon';
+        return 'night';
+    };
+
+    const getTimeGreeting = (date = new Date()) => {
+        const period = getGreetingPeriod(date);
+        if (period === 'morning') return 'Buenos días';
+        if (period === 'afternoon') return 'Buenas tardes';
+        return 'Buenas noches';
+    };
+
     const displayCurrentDate = () => {
         if (!currentDateDisplay) return;
         currentDateDisplay.textContent = new Date().toLocaleDateString('es-ES', {
@@ -667,6 +886,16 @@ document.addEventListener('DOMContentLoaded', () => {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    const updateUserGreeting = (userName) => {
+        const greetingEl = document.getElementById('user-greeting');
+        if (!greetingEl) return;
+        const safeName = typeof userName === 'string' && userName.trim() ? userName.trim() : 'Usuario';
+        const now = new Date();
+        greetingEl.textContent = `${getTimeGreeting(now)}, ${safeName}`;
+        greetingEl.classList.remove('greeting-gradient', 'greeting-morning', 'greeting-afternoon', 'greeting-night');
+        greetingEl.classList.add('greeting-gradient', `greeting-${getGreetingPeriod(now)}`);
     };
 
     const getContrastingTextColor = (hex) => {
@@ -851,20 +1080,294 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
+    const getStartOfWeek = (referenceDate = new Date()) => {
+        const start = new Date(referenceDate);
+        start.setHours(0, 0, 0, 0);
+        const diff = (start.getDay() + 6) % 7;
+        start.setDate(start.getDate() - diff);
+        return start;
+    };
+
+    const getEndOfWeek = (startOfWeek) => {
+        const end = new Date(startOfWeek);
+        end.setDate(end.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+        return end;
+    };
+
+    const formatWeekRangeLabel = (startOfWeek, endOfWeek) => {
+        const startOptions = { day: '2-digit', month: 'short' };
+        const endOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+        if (startOfWeek.getFullYear() !== endOfWeek.getFullYear()) {
+            startOptions.year = 'numeric';
+        }
+        const startLabel = startOfWeek.toLocaleDateString('es-ES', startOptions).replace(/\./g, '');
+        const endLabel = endOfWeek.toLocaleDateString('es-ES', endOptions).replace(/\./g, '');
+        return `${startLabel} – ${endLabel}`;
+    };
+
+    const updateWeeklyOverview = (notes = []) => {
+        if (!weeklyActivityDaysContainer || weeklyDayElements.length === 0) return;
+        const weekStart = getStartOfWeek();
+        const weekEnd = getEndOfWeek(weekStart);
+
+        const weeklyData = Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + index);
+            date.setHours(0, 0, 0, 0);
+            return { index, date, notesCount: 0 };
+        });
+
+        notes.forEach((note) => {
+            if (!note || typeof note.id === 'undefined') return;
+            const noteDate = new Date(note.id);
+            if (Number.isNaN(noteDate.getTime())) return;
+            if (noteDate < weekStart || noteDate > weekEnd) return;
+            const dayIndex = (noteDate.getDay() + 6) % 7;
+            const dayData = weeklyData[dayIndex];
+            if (dayData) {
+                dayData.notesCount += 1;
+            }
+        });
+
+        const totalNotes = weeklyData.reduce((sum, day) => sum + day.notesCount, 0);
+        const daysWithNotes = weeklyData.filter(day => day.notesCount > 0).length;
+
+        if (weeklyWeekRange) {
+            weeklyWeekRange.textContent = formatWeekRangeLabel(weekStart, weekEnd);
+        }
+
+        if (weeklyActivitySummary) {
+            if (totalNotes === 0) {
+                weeklyActivitySummary.textContent = 'Sin registros durante la semana actual.';
+            } else {
+                const notesLabel = totalNotes === 1 ? 'nota' : 'notas';
+                const daysLabel = daysWithNotes === 1 ? 'día' : 'días';
+                weeklyActivitySummary.textContent = `Registraste ${totalNotes} ${notesLabel} en ${daysWithNotes} ${daysLabel} de esta semana.`;
+            }
+        }
+
+        weeklyDayElements.forEach((dayEl, index) => {
+            const dayData = weeklyData[index];
+            if (!dayData) return;
+            const hasNotes = dayData.notesCount > 0;
+            dayEl.classList.toggle('active', hasNotes);
+            dayEl.classList.toggle('inactive', !hasNotes);
+            const checkIcon = dayEl.querySelector('[data-role="status-icon-check"]');
+            const emptyIcon = dayEl.querySelector('[data-role="status-icon-empty"]');
+            const statusText = dayEl.querySelector('[data-role="status-text"]');
+            const statusDot = dayEl.querySelector('.status-dot');
+            const dayLabel = dayData.date.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'short' }).replace(/\./g, '');
+            dayEl.setAttribute('title', hasNotes ? `${dayLabel}: ${dayData.notesCount} ${dayData.notesCount === 1 ? 'nota' : 'notas'}` : `${dayLabel}: sin registros`);
+            if (checkIcon) {
+                checkIcon.classList.toggle('hidden', !hasNotes);
+            }
+            if (emptyIcon) {
+                emptyIcon.classList.toggle('hidden', hasNotes);
+            }
+            if (statusText) {
+                statusText.textContent = hasNotes
+                    ? `${dayData.notesCount} ${dayData.notesCount === 1 ? 'nota' : 'notas'}`
+                    : 'Sin registros';
+            }
+            if (statusDot) {
+                statusDot.setAttribute('aria-label', hasNotes ? 'Día con registros' : 'Día sin registros');
+            }
+        });
+    };
+
+    const normalizeSearchText = (text) => {
+        if (!text) return '';
+        return text
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    };
+
+    const updateHistorySearchUI = () => {
+        if (!historySearchClearBtn) return;
+        const hasTerm = historySearchTerm.trim().length > 0;
+        historySearchClearBtn.disabled = !hasTerm;
+        historySearchClearBtn.classList.toggle('opacity-40', !hasTerm);
+        historySearchClearBtn.classList.toggle('pointer-events-none', !hasTerm);
+        historySearchClearBtn.classList.toggle('cursor-not-allowed', !hasTerm);
+    };
+
+    const updateTagFilterSummary = () => {
+        if (!tagFilterSummary) return;
+        tagFilterSummary.innerHTML = '';
+        const hasActiveFilters = activeTagFilters.size > 0;
+        tagFilterSummary.classList.toggle('hidden', !hasActiveFilters);
+        if (!hasActiveFilters) return;
+
+        activeTagFilters.forEach((tagName) => {
+            const pill = document.createElement('span');
+            pill.className = 'tag-filter-pill inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-semibold border border-slate-200 bg-white text-slate-600';
+            pill.innerHTML = `${tagName}<button type="button" data-tag-name="${tagName}" class="remove-tag-filter text-slate-400 hover:text-red-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+            </button>`;
+            tagFilterSummary.appendChild(pill);
+        });
+
+        tagFilterSummary.querySelectorAll('.remove-tag-filter').forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                const tag = event.currentTarget.getAttribute('data-tag-name');
+                if (!tag) return;
+                activeTagFilters.delete(tag);
+                pendingTagSelection.delete(tag);
+                renderTagFilterOptions();
+                renderHistory();
+            });
+        });
+    };
+
+    const renderTagFilterOptions = () => {
+        if (!tagFilterOptions || !tagFilterEmpty || !tagFilterSelectedEmpty || !tagFilterToggleLabel) return;
+        const validTagNames = new Set((availableTags || []).map(tag => tag.name));
+        pendingTagSelection = new Set([...pendingTagSelection].filter(tagName => validTagNames.has(tagName)));
+        activeTagFilters = new Set([...activeTagFilters].filter(tagName => validTagNames.has(tagName)));
+
+        const hasTags = validTagNames.size > 0;
+        tagFilterEmpty.classList.toggle('hidden', hasTags);
+        tagFilterOptions.classList.toggle('hidden', !hasTags);
+        const hasPending = pendingTagSelection.size > 0;
+        tagFilterSelectedEmpty.classList.toggle('hidden', hasPending || !hasTags);
+
+        if (tagFilterToggleLabel) {
+            tagFilterToggleLabel.textContent = activeTagFilters.size > 0
+                ? `${activeTagFilters.size} etiqueta${activeTagFilters.size === 1 ? '' : 's'} seleccionada${activeTagFilters.size === 1 ? '' : 's'}`
+                : 'Selecciona etiquetas…';
+        }
+
+        if (!hasTags) {
+            tagFilterOptions.innerHTML = '';
+            updateTagFilterSummary();
+            return;
+        }
+
+        const sortedTags = [...availableTags].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+        tagFilterOptions.innerHTML = '';
+        sortedTags.forEach((tag) => {
+            const option = document.createElement('label');
+            option.className = 'flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer';
+            const inputId = `tag-filter-${tag.name}`;
+            option.innerHTML = `
+                <input id="${inputId}" type="checkbox" value="${tag.name}" class="tag-filter-checkbox h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" ${pendingTagSelection.has(tag.name) ? 'checked' : ''}>
+                <span class="flex-1">
+                    <span class="block text-sm font-semibold text-slate-700">${tag.name}</span>
+                    ${tag.color ? `<span class="inline-flex items-center gap-1 text-xs text-slate-500"><span class="h-2.5 w-2.5 rounded-full border border-slate-200" style="background:${tag.color}"></span>${tag.color}</span>` : ''}
+                </span>
+                ${tag.description ? `<span class="text-xs text-slate-400">${tag.description}</span>` : ''}
+            `;
+            tagFilterOptions.appendChild(option);
+        });
+
+        tagFilterOptions.querySelectorAll('.tag-filter-checkbox').forEach((checkbox) => {
+            checkbox.addEventListener('change', (event) => {
+                const tagName = event.target.value;
+                if (!tagName) return;
+                if (event.target.checked) {
+                    pendingTagSelection.add(tagName);
+                } else {
+                    pendingTagSelection.delete(tagName);
+                }
+                tagFilterSelectedEmpty.classList.toggle('hidden', pendingTagSelection.size > 0 || !hasTags);
+            });
+        });
+
+        updateTagFilterSummary();
+    };
+
+    const toggleTagFilterDropdown = (forceState) => {
+        if (!tagFilterDropdown) return;
+        const isOpen = tagFilterDropdown.dataset.open === 'true';
+        const nextState = typeof forceState === 'boolean' ? forceState : !isOpen;
+        tagFilterDropdown.dataset.open = nextState ? 'true' : 'false';
+        tagFilterDropdown.classList.toggle('hidden', !nextState);
+        tagFilterDropdown.style.display = nextState ? 'block' : 'none';
+        if (tagFilterToggle) {
+            tagFilterToggle.setAttribute('aria-expanded', nextState ? 'true' : 'false');
+        }
+        if (nextState) {
+            pendingTagSelection = new Set(activeTagFilters);
+            renderTagFilterOptions();
+        }
+    };
+
+    const applyPendingTagSelection = () => {
+        activeTagFilters = new Set(pendingTagSelection);
+        updateTagFilterSummary();
+        renderTagFilterOptions();
+        renderHistory();
+        toggleTagFilterDropdown(false);
+    };
+
+    const clearTagFilters = ({ keepDropdownOpen = false } = {}) => {
+        pendingTagSelection.clear();
+        activeTagFilters.clear();
+        updateTagFilterSummary();
+        renderTagFilterOptions();
+        renderHistory();
+        if (!keepDropdownOpen) {
+            toggleTagFilterDropdown(false);
+        }
+    };
+
     const renderHistory = () => {
         if (!db || !historyContainer || !noHistoryMessage) return;
+        updateHistorySearchUI();
         const tx = db.transaction(['notes', 'tags'], 'readonly');
         tx.objectStore('tags').getAll().onsuccess = (eTags) => {
             const tagsMap = eTags.target.result.reduce((acc, tag) => ({ ...acc, [tag.name]: tag }), {});
             tx.objectStore('notes').getAll().onsuccess = (eNotes) => {
                 const allNotes = eNotes.target.result.sort((a, b) => b.id - a.id);
+                availableTags = eTags.target.result || [];
+                renderTagFilterOptions();
+                updateWeeklyOverview(allNotes);
                 historyContainer.innerHTML = '';
-                noHistoryMessage.classList.toggle('hidden', allNotes.length > 0);
-                if (allNotes.length === 0) return;
+                const hasNotes = allNotes.length > 0;
+                noHistoryMessage.classList.toggle('hidden', hasNotes);
+
+                if (!hasNotes) {
+                    historySearchEmptyMessage?.classList.add('hidden');
+                    updateTagFilterSummary();
+                    return;
+                }
+
+                const normalizedSearch = normalizeSearchText(historySearchTerm);
+                const filteredNotes = normalizedSearch
+                    ? allNotes.filter((note) => {
+                        const noteTitle = typeof note.title === 'string' ? note.title : 'Nota sin título';
+                        return normalizeSearchText(noteTitle).includes(normalizedSearch);
+                    })
+                    : allNotes;
+
+                const activeTagsArray = Array.from(activeTagFilters);
+                const notesFilteredByTags = activeTagsArray.length > 0
+                    ? filteredNotes.filter((note) => {
+                        const noteTags = Array.isArray(note.tags) ? note.tags : [];
+                        if (noteTags.length === 0) return false;
+                        return activeTagsArray.every(tagName => noteTags.includes(tagName));
+                    })
+                    : filteredNotes;
+
+                const isSearchActive = normalizedSearch.length > 0;
+                const hasTagFilters = activeTagsArray.length > 0;
+                const hasResults = notesFilteredByTags.length > 0;
+
+                if (historySearchEmptyMessage) {
+                    historySearchEmptyMessage.classList.toggle('hidden', hasResults || (!isSearchActive && !hasTagFilters));
+                }
+
+                if (!hasResults) {
+                    return;
+                }
 
                 let currentDay = null;
                 let dayGridContainer = null;
-                allNotes.forEach(note => {
+                notesFilteredByTags.forEach(note => {
                     const noteDay = new Date(note.id).toDateString();
                     if (noteDay !== currentDay) {
                         currentDay = noteDay;
@@ -983,20 +1486,163 @@ document.addEventListener('DOMContentLoaded', () => {
         saveNoteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg><span>Añadir Nota</span>';
     };
 
-    const exportData = () => {
-        if (!db) return;
-        const tx = db.transaction(['notes', 'tags'], 'readonly');
-        tx.objectStore('notes').getAll().onsuccess = (eNotes) => {
-            tx.objectStore('tags').getAll().onsuccess = (eTags) => {
-                const exportObj = { notes: eNotes.target.result, tags: eTags.target.result };
-                const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `notas-backup-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(a.href);
+    const exportData = async () => {
+        if (!db) {
+            showUserNameStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        try {
+            const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
+            const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+            const tx = db.transaction(stores, 'readonly');
+            const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
+            const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
+
+            let themePreference = null;
+            let storedUserName = null;
+            let storedBirthday = null;
+
+            if (hasSettingsStore) {
+                const settingsStore = tx.objectStore(SETTINGS_STORE);
+                const [themeEntry, userNameEntry, birthdayEntry] = await Promise.all([
+                    requestToPromise(settingsStore.get(THEME_KEY)),
+                    requestToPromise(settingsStore.get(USER_NAME_KEY)),
+                    requestToPromise(settingsStore.get(BIRTHDAY_KEY))
+                ]);
+                themePreference = typeof themeEntry?.value === 'string' ? sanitizeThemePreference(themeEntry.value) : null;
+                storedUserName = typeof userNameEntry?.value === 'string' ? userNameEntry.value : null;
+                if (birthdayEntry && typeof birthdayEntry.month === 'number' && typeof birthdayEntry.day === 'number') {
+                    storedBirthday = { month: birthdayEntry.month, day: birthdayEntry.day };
+                }
+            }
+
+            const [notes, tags] = await Promise.all([notesPromise, tagsPromise]);
+
+            const exportObj = {
+                meta: {
+                    version: 1,
+                    exportedAt: new Date().toISOString()
+                },
+                notes: Array.isArray(notes) ? notes : [],
+                tags: Array.isArray(tags) ? tags : [],
+                settings: {
+                    theme: themePreference,
+                    userName: storedUserName,
+                    birthday: storedBirthday
+                }
             };
+
+            const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `notas-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } catch (error) {
+            console.error('No se pudo exportar los datos.', error);
+            showUserNameStatus('No se pudo exportar los datos.', 'error');
+        }
+    };
+
+    const importDataFromObject = async (payload) => {
+        if (!payload || typeof payload !== 'object') {
+            throw new Error('El archivo no tiene el formato esperado.');
+        }
+        if (!db) {
+            throw new Error('La base de datos aún no está lista.');
+        }
+
+        const notesArray = Array.isArray(payload.notes) ? payload.notes : [];
+        const tagsArray = Array.isArray(payload.tags) ? payload.tags : [];
+        const rawSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : {};
+
+        const sanitizedNotes = notesArray.filter(note => note && typeof note === 'object' && typeof note.id === 'number');
+        const sanitizedTags = tagsArray.filter(tag => tag && typeof tag === 'object' && typeof tag.name === 'string');
+
+        const sanitizedSettings = {
+            theme: typeof rawSettings.theme === 'string' ? sanitizeThemePreference(rawSettings.theme) : null,
+            userName: typeof rawSettings.userName === 'string' && rawSettings.userName.trim() ? rawSettings.userName.trim() : null,
+            birthday: null
         };
+
+        if (rawSettings.birthday && typeof rawSettings.birthday === 'object') {
+            const month = Number(rawSettings.birthday.month);
+            const day = Number(rawSettings.birthday.day);
+            if (Number.isInteger(month) && Number.isInteger(day) && isValidBirthday(month, day)) {
+                sanitizedSettings.birthday = { month, day };
+            }
+        }
+
+        try {
+            await ensureSettingsStore();
+        } catch (error) {
+            console.warn('No se pudo garantizar el almacén de ajustes al importar.', error);
+        }
+
+        const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
+        const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+        const tx = db.transaction(stores, 'readwrite');
+        const notesStore = tx.objectStore('notes');
+        const tagsStore = tx.objectStore('tags');
+        const settingsStore = hasSettingsStore ? tx.objectStore(SETTINGS_STORE) : null;
+
+        const clearPromises = [
+            requestToPromise(notesStore.clear()),
+            requestToPromise(tagsStore.clear())
+        ];
+        if (settingsStore) {
+            clearPromises.push(requestToPromise(settingsStore.clear()));
+        }
+        await Promise.all(clearPromises);
+
+        const writePromises = [
+            ...sanitizedNotes.map(note => requestToPromise(notesStore.put(note))),
+            ...sanitizedTags.map(tag => requestToPromise(tagsStore.put(tag)))
+        ];
+
+        if (settingsStore) {
+            if (sanitizedSettings.theme) {
+                writePromises.push(requestToPromise(settingsStore.put({ key: THEME_KEY, value: sanitizedSettings.theme })));
+            }
+            if (sanitizedSettings.userName) {
+                writePromises.push(requestToPromise(settingsStore.put({ key: USER_NAME_KEY, value: sanitizedSettings.userName })));
+            }
+            if (sanitizedSettings.birthday) {
+                writePromises.push(requestToPromise(settingsStore.put({ key: BIRTHDAY_KEY, month: sanitizedSettings.birthday.month, day: sanitizedSettings.birthday.day })));
+            }
+        }
+
+        await Promise.all(writePromises);
+        await transactionToPromise(tx);
+
+        if (sanitizedSettings.theme) {
+            currentThemePreference = sanitizedSettings.theme;
+            applyTheme(currentThemePreference);
+        } else {
+            currentThemePreference = DEFAULT_THEME;
+            applyTheme(currentThemePreference);
+        }
+
+        refreshActiveView();
+        if (typeof populateMultiSelectDropdown === 'function') {
+            populateMultiSelectDropdown();
+        }
+        showUserNameStatus('Datos importados correctamente.', 'success');
+    };
+
+    const handleImportFileSelection = async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const payload = JSON.parse(text);
+            await importDataFromObject(payload);
+        } catch (error) {
+            console.error('No se pudo importar el archivo proporcionado.', error);
+            showUserNameStatus('No se pudo importar los datos. Verifica el archivo JSON.', 'error');
+        } finally {
+            event.target.value = '';
+        }
     };
 
     const clearAllData = () => {
@@ -1041,10 +1687,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showNoteFormBtn) showNoteFormBtn.addEventListener('click', showNoteFormModal);
     if (saveNoteBtn) saveNoteBtn.addEventListener('click', saveNote);
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
+    if (importNotesBtn && importFileInput) {
+        importNotesBtn.addEventListener('click', () => importFileInput.click());
+        importFileInput.addEventListener('change', handleImportFileSelection);
+    }
     if (exportNotesBtn) exportNotesBtn.addEventListener('click', exportData);
     if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => showModal(deleteAllModal));
     if (saveBirthdayBtn) saveBirthdayBtn.addEventListener('click', saveBirthday);
     if (clearBirthdayBtn) clearBirthdayBtn.addEventListener('click', clearBirthday);
+    if (saveUserNameBtn) saveUserNameBtn.addEventListener('click', saveUserName);
+    if (clearUserNameBtn) clearUserNameBtn.addEventListener('click', clearUserName);
     if (birthdayMonthSelect) birthdayMonthSelect.addEventListener('change', applyBirthdayLimits);
     if (birthdayMonthSelect) applyBirthdayLimits();
     if (toggleDateTimeBtn) toggleDateTimeBtn.addEventListener('click', () => customDateTimeContainer.classList.toggle('hidden'));
