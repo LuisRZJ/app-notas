@@ -47,6 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagCountEl = document.getElementById('tag-count');
     const storageUsageEl = document.getElementById('storage-usage');
     const storageQuotaEl = document.getElementById('storage-quota');
+    const indexedDbUsageEl = document.getElementById('indexeddb-usage');
+    const localStorageUsageEl = document.getElementById('localstorage-usage');
+    const storageChartCanvas = document.getElementById('storage-chart');
+    const storageChartMessageEl = document.getElementById('storage-chart-message');
+    const birthdayMonthSelect = document.getElementById('birthday-month');
+    const birthdayDayInput = document.getElementById('birthday-day');
+    const saveBirthdayBtn = document.getElementById('save-birthday-btn');
+    const clearBirthdayBtn = document.getElementById('clear-birthday-btn');
+    const birthdayStatusEl = document.getElementById('birthday-status');
+    const themeSelect = document.getElementById('theme-select');
+    const metaThemeColorEl = document.querySelector('meta[name="theme-color"]');
+    const rootElement = document.documentElement;
+    const systemThemeMedia = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     const exportNotesBtn = document.getElementById('export-notes-btn');
     const clearAllDataBtn = document.getElementById('clear-all-data-btn');
     const newTagInput = document.getElementById('new-tag-input');
@@ -103,12 +116,122 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    const SETTINGS_STORE = 'settings';
+    const BIRTHDAY_KEY = 'birthday';
+    const THEME_KEY = 'theme';
+    const DEFAULT_THEME = 'light';
+    const THEME_OPTIONS = new Set(['light', 'dark', 'system']);
+    const META_THEME_COLOR_LIGHT = '#2563eb';
+    const META_THEME_COLOR_DARK = '#0f172a';
+
     let db;
     let noteIdToEdit = null;
     let noteIdToDelete = null;
     let draggedTag = null;
+    let storageChart = null;
+    let birthdayStatusTimeout = null;
+    let currentThemePreference = DEFAULT_THEME;
+    let pendingThemePreference = null;
 
-    const request = indexedDB.open('NotesDB', 5);
+    const sanitizeThemePreference = (value) => THEME_OPTIONS.has(value) ? value : DEFAULT_THEME;
+
+    const resolveSystemTheme = () => (systemThemeMedia && systemThemeMedia.matches ? 'dark' : 'light');
+
+    const updateThemeColorMeta = (effectiveTheme) => {
+        if (!metaThemeColorEl) return;
+        metaThemeColorEl.setAttribute('content', effectiveTheme === 'dark' ? META_THEME_COLOR_DARK : META_THEME_COLOR_LIGHT);
+    };
+
+    const applyTheme = (preference, options = {}) => {
+        const { skipSelectUpdate = false, skipMetaUpdate = false } = options;
+        const sanitizedPreference = sanitizeThemePreference(preference);
+        const effectiveTheme = sanitizedPreference === 'system' ? resolveSystemTheme() : sanitizedPreference;
+        if (document.body) {
+            document.body.dataset.theme = effectiveTheme;
+            document.body.dataset.themePreference = sanitizedPreference;
+        }
+        if (rootElement) {
+            rootElement.style.colorScheme = effectiveTheme === 'dark' ? 'dark' : 'light';
+        }
+        if (!skipMetaUpdate) {
+            updateThemeColorMeta(effectiveTheme);
+        }
+        if (themeSelect && !skipSelectUpdate) {
+            themeSelect.value = sanitizedPreference;
+        }
+        return effectiveTheme;
+    };
+
+    const persistThemePreferenceToDb = (preference) => {
+        if (!db) return;
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        const store = tx.objectStore(SETTINGS_STORE);
+        store.put({ key: THEME_KEY, value: preference });
+        tx.onerror = () => {
+            console.error('No se pudo guardar la preferencia de tema.', tx.error);
+        };
+    };
+
+    const persistThemePreference = (preference) => {
+        const sanitizedPreference = sanitizeThemePreference(preference);
+        if (!isSettingsStoreReady()) {
+            pendingThemePreference = sanitizedPreference;
+            return;
+        }
+        persistThemePreferenceToDb(sanitizedPreference);
+    };
+
+    const flushPendingThemePreference = () => {
+        if (!pendingThemePreference || !isSettingsStoreReady()) return;
+        const preferenceToPersist = pendingThemePreference;
+        pendingThemePreference = null;
+        persistThemePreferenceToDb(preferenceToPersist);
+    };
+
+    const loadThemePreference = () => {
+        if (!isSettingsStoreReady()) {
+            applyTheme(currentThemePreference);
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        tx.objectStore(SETTINGS_STORE).get(THEME_KEY).onsuccess = (event) => {
+            const storedValue = event.target.result?.value;
+            currentThemePreference = sanitizeThemePreference(storedValue);
+            applyTheme(currentThemePreference);
+        };
+        tx.onerror = () => {
+            console.error('No se pudo cargar la preferencia de tema.', tx.error);
+            applyTheme(currentThemePreference);
+        };
+    };
+
+    applyTheme(currentThemePreference, { skipMetaUpdate: true });
+    loadThemePreference();
+
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (event) => {
+            const newPreference = sanitizeThemePreference(event.target.value);
+            currentThemePreference = newPreference;
+            applyTheme(currentThemePreference, { skipSelectUpdate: true });
+            persistThemePreference(currentThemePreference);
+        });
+    }
+
+    const handleSystemThemeChange = () => {
+        if (currentThemePreference === 'system') {
+            applyTheme(currentThemePreference, { skipSelectUpdate: true });
+        }
+    };
+
+    if (systemThemeMedia) {
+        if (typeof systemThemeMedia.addEventListener === 'function') {
+            systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+        } else if (typeof systemThemeMedia.addListener === 'function') {
+            systemThemeMedia.addListener(handleSystemThemeChange);
+        }
+    }
+
+    const request = indexedDB.open('NotesDB', 6);
     request.onerror = (e) => console.error('Error DB:', e);
     request.onupgradeneeded = (e) => {
         db = e.target.result;
@@ -118,6 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!db.objectStoreNames.contains('tags')) {
             db.createObjectStore('tags', { keyPath: 'name' });
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            db.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
         }
         if (e.oldVersion < 5 && tx.objectStoreNames.contains('notes')) {
             const noteStore = tx.objectStore('notes');
@@ -132,13 +258,57 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
     };
-    request.onsuccess = (e) => {
-        db = e.target.result;
+    request.onblocked = () => {
+        console.warn('Actualiza las demás pestañas de la aplicación para completar la actualización de la base de datos.');
+    };
+
+    function finalizeDatabaseInitialization() {
+        flushPendingThemePreference();
+        loadThemePreference();
         if (typeof populateMultiSelectDropdown === 'function') {
             populateMultiSelectDropdown();
         }
         renderTags();
         refreshActiveView();
+    }
+
+    function ensureSettingsStore() {
+        if (!db) {
+            return Promise.reject(new Error('Base de datos no disponible.'));
+        }
+        if (db.objectStoreNames.contains(SETTINGS_STORE)) {
+            return Promise.resolve();
+        }
+        const nextVersion = db.version + 1;
+        db.close();
+        return new Promise((resolve, reject) => {
+            const upgradeRequest = indexedDB.open('NotesDB', nextVersion);
+            upgradeRequest.onerror = () => reject(upgradeRequest.error);
+            upgradeRequest.onblocked = () => reject(new Error('No se pudo actualizar la base de datos porque existe otra pestaña abierta.'));
+            upgradeRequest.onupgradeneeded = (event) => {
+                const upgradeDb = event.target.result;
+                if (!upgradeDb.objectStoreNames.contains(SETTINGS_STORE)) {
+                    upgradeDb.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
+                }
+            };
+            upgradeRequest.onsuccess = (event) => {
+                db = event.target.result;
+                db.onversionchange = () => db?.close();
+                resolve();
+            };
+        });
+    }
+
+    request.onsuccess = (e) => {
+        db = e.target.result;
+        db.onversionchange = () => db?.close();
+        ensureSettingsStore()
+            .catch(error => {
+                console.error('No se pudo preparar el almacén de ajustes:', error);
+            })
+            .finally(() => {
+                finalizeDatabaseInitialization();
+            });
     };
 
     const refreshActiveView = () => {
@@ -152,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'settings':
                 updateStorageInfo();
                 renderTags();
+                loadBirthday();
                 break;
             default:
                 renderNotes();
@@ -167,15 +338,303 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     };
 
-    const updateStorageInfo = async () => {
-        if (navigator.storage && navigator.storage.estimate) {
-            const { usage, quota } = await navigator.storage.estimate();
-            storageUsageEl.textContent = formatBytes(usage);
-            storageQuotaEl.textContent = formatBytes(quota);
-        } else {
-            storageUsageEl.textContent = 'No Soportado';
-            storageQuotaEl.textContent = 'No Soportado';
+    const requestToPromise = (request) => new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+
+    const getDaysInMonth = (month) => {
+        if (!month) return 31;
+        const referenceYear = 2024; // Año bisiesto para admitir el 29 de febrero
+        return new Date(referenceYear, month, 0).getDate();
+    };
+
+    const isValidBirthday = (month, day) => {
+        if (!month || !day) return false;
+        const limit = getDaysInMonth(month);
+        return day >= 1 && day <= limit;
+    };
+
+    const showBirthdayStatus = (message, type = 'info') => {
+        if (!birthdayStatusEl) return;
+        birthdayStatusEl.textContent = message;
+        birthdayStatusEl.classList.remove('text-green-600', 'text-red-600');
+        if (type === 'success') {
+            birthdayStatusEl.classList.add('text-green-600');
+        } else if (type === 'error') {
+            birthdayStatusEl.classList.add('text-red-600');
         }
+        if (birthdayStatusTimeout) {
+            clearTimeout(birthdayStatusTimeout);
+        }
+        birthdayStatusTimeout = setTimeout(() => {
+            if (birthdayStatusEl) {
+                birthdayStatusEl.textContent = '';
+                birthdayStatusEl.classList.remove('text-green-600', 'text-red-600');
+            }
+        }, 4000);
+    };
+
+    const applyBirthdayLimits = () => {
+        if (!birthdayDayInput || !birthdayMonthSelect) return;
+        const month = Number(birthdayMonthSelect.value);
+        const maxDay = getDaysInMonth(month);
+        birthdayDayInput.max = maxDay;
+        if (birthdayDayInput.value) {
+            const currentDay = Number(birthdayDayInput.value);
+            if (currentDay > maxDay) {
+                birthdayDayInput.value = String(maxDay);
+            }
+        }
+    };
+
+    const loadBirthday = () => {
+        if (!db || !birthdayMonthSelect || !birthdayDayInput) return;
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        tx.objectStore(SETTINGS_STORE).get(BIRTHDAY_KEY).onsuccess = (event) => {
+            const data = event.target.result;
+            if (data && typeof data.month === 'number' && typeof data.day === 'number') {
+                birthdayMonthSelect.value = String(data.month);
+                birthdayDayInput.value = String(data.day);
+                applyBirthdayLimits();
+                showBirthdayStatus('Cumpleaños cargado correctamente.', 'success');
+            } else {
+                birthdayMonthSelect.value = '';
+                birthdayDayInput.value = '';
+                applyBirthdayLimits();
+            }
+        };
+    };
+
+    const saveBirthday = () => {
+        if (!db || !birthdayMonthSelect || !birthdayDayInput) {
+            showBirthdayStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showBirthdayStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const month = Number(birthdayMonthSelect.value);
+        const day = Number(birthdayDayInput.value);
+        if (!month || !day) {
+            showBirthdayStatus('Completa el mes y el día.', 'error');
+            return;
+        }
+        if (!isValidBirthday(month, day)) {
+            showBirthdayStatus('El día no corresponde con el mes seleccionado.', 'error');
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).put({ key: BIRTHDAY_KEY, month, day });
+        tx.oncomplete = () => {
+            showBirthdayStatus('Cumpleaños guardado correctamente.', 'success');
+        };
+        tx.onerror = () => {
+            showBirthdayStatus('No se pudo guardar el cumpleaños.', 'error');
+        };
+    };
+
+    const clearBirthday = () => {
+        if (!db || !birthdayMonthSelect || !birthdayDayInput) {
+            showBirthdayStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showBirthdayStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).delete(BIRTHDAY_KEY);
+        tx.oncomplete = () => {
+            birthdayMonthSelect.value = '';
+            birthdayDayInput.value = '';
+            applyBirthdayLimits();
+            showBirthdayStatus('Cumpleaños eliminado.', 'success');
+        };
+        tx.onerror = () => {
+            showBirthdayStatus('No se pudo eliminar el cumpleaños.', 'error');
+        };
+    };
+
+    function isSettingsStoreReady() {
+        return Boolean(db && db.objectStoreNames.contains(SETTINGS_STORE));
+    }
+
+    const showStorageChartMessage = (message) => {
+        if (!storageChartMessageEl) return;
+        storageChartMessageEl.textContent = message;
+        storageChartMessageEl.classList.remove('hidden');
+    };
+
+    const hideStorageChartMessage = () => {
+        if (!storageChartMessageEl) return;
+        storageChartMessageEl.classList.add('hidden');
+    };
+
+    const destroyStorageChart = () => {
+        if (storageChart) {
+            storageChart.destroy();
+            storageChart = null;
+        }
+    };
+
+    const calculateIndexedDbUsage = async () => {
+        if (!db) return null;
+        try {
+            const [notes, tags] = await Promise.all([
+                requestToPromise(db.transaction('notes', 'readonly').objectStore('notes').getAll()),
+                requestToPromise(db.transaction('tags', 'readonly').objectStore('tags').getAll())
+            ]);
+            const notesBlob = new Blob([JSON.stringify(notes || [])]);
+            const tagsBlob = new Blob([JSON.stringify(tags || [])]);
+            return notesBlob.size + tagsBlob.size;
+        } catch (error) {
+            console.error('Error calculando uso de IndexedDB:', error);
+            return null;
+        }
+    };
+
+    const calculateLocalStorageUsage = () => {
+        if (typeof localStorage === 'undefined') return null;
+        try {
+            const entries = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                entries.push(key ?? '');
+                entries.push(value ?? '');
+            }
+            return new Blob(entries).size;
+        } catch (error) {
+            console.error('Error calculando uso de LocalStorage:', error);
+            return null;
+        }
+    };
+
+    const updateStorageChart = ({ quota, usage, indexedDbUsage, localStorageUsage }) => {
+        if (!storageChartCanvas || typeof Chart === 'undefined') {
+            showStorageChartMessage('No se pudo cargar el gráfico de almacenamiento.');
+            destroyStorageChart();
+            return;
+        }
+
+        const hasQuota = typeof quota === 'number' && quota > 0;
+        const hasUsage = typeof usage === 'number' && usage >= 0;
+
+        if (!hasQuota || !hasUsage) {
+            destroyStorageChart();
+            showStorageChartMessage('El navegador no proporcionó información suficiente para generar el gráfico.');
+            return;
+        }
+
+        const indexedUsage = Math.max(indexedDbUsage ?? 0, 0);
+        const localUsage = Math.max(localStorageUsage ?? 0, 0);
+        const otherUsage = Math.max(usage - (indexedUsage + localUsage), 0);
+        const available = Math.max(quota - usage, 0);
+        const total = indexedUsage + localUsage + otherUsage + available;
+
+        if (total <= 0) {
+            destroyStorageChart();
+            showStorageChartMessage('Aún no hay datos almacenados que mostrar.');
+            return;
+        }
+
+        const data = [indexedUsage, localUsage, otherUsage, available];
+        const labels = ['IndexedDB', 'LocalStorage', 'Otros Datos', 'Disponible'];
+        const backgroundColors = ['#2563eb', '#16a34a', '#fb923c', '#94a3b8'];
+
+        if (!storageChart) {
+            storageChart = new Chart(storageChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: backgroundColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#0f172a',
+                                usePointStyle: true,
+                                boxWidth: 10
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.raw;
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${formatBytes(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            storageChart.data.labels = labels;
+            storageChart.data.datasets[0].data = data;
+            storageChart.update();
+        }
+
+        if (storageChartMessageEl) {
+            const availablePercent = total > 0 ? (available / total) * 100 : 0;
+            storageChartMessageEl.textContent = `Disponible: ${formatBytes(available)} (${availablePercent.toFixed(1)}%)`;
+            storageChartMessageEl.classList.remove('hidden');
+        }
+    };
+
+    const updateStorageInfo = async () => {
+        let quotaEstimate = null;
+        let usageEstimate = null;
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+                usageEstimate = usage;
+                quotaEstimate = quota;
+                if (storageUsageEl) storageUsageEl.textContent = formatBytes(usage);
+                if (storageQuotaEl) storageQuotaEl.textContent = formatBytes(quota);
+            } catch (error) {
+                console.error('Error obteniendo estimación de almacenamiento:', error);
+                if (storageUsageEl) storageUsageEl.textContent = 'Error';
+                if (storageQuotaEl) storageQuotaEl.textContent = 'Error';
+            }
+        } else {
+            if (storageUsageEl) storageUsageEl.textContent = 'No Soportado';
+            if (storageQuotaEl) storageQuotaEl.textContent = 'No Soportado';
+        }
+
+        const [indexedDbUsage, localStorageUsage] = await Promise.all([
+            calculateIndexedDbUsage(),
+            Promise.resolve(calculateLocalStorageUsage())
+        ]);
+
+        if (indexedDbUsageEl) {
+            indexedDbUsageEl.textContent = typeof indexedDbUsage === 'number' ? formatBytes(indexedDbUsage) : 'No Disponible';
+        }
+        if (localStorageUsageEl) {
+            localStorageUsageEl.textContent = typeof localStorageUsage === 'number' ? formatBytes(localStorageUsage) : 'No Disponible';
+        }
+
+        updateStorageChart({
+            quota: quotaEstimate,
+            usage: usageEstimate,
+            indexedDbUsage,
+            localStorageUsage
+        });
+
         updateTotalNoteCount();
         updateTagCount();
     };
@@ -584,6 +1043,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
     if (exportNotesBtn) exportNotesBtn.addEventListener('click', exportData);
     if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => showModal(deleteAllModal));
+    if (saveBirthdayBtn) saveBirthdayBtn.addEventListener('click', saveBirthday);
+    if (clearBirthdayBtn) clearBirthdayBtn.addEventListener('click', clearBirthday);
+    if (birthdayMonthSelect) birthdayMonthSelect.addEventListener('change', applyBirthdayLimits);
+    if (birthdayMonthSelect) applyBirthdayLimits();
     if (toggleDateTimeBtn) toggleDateTimeBtn.addEventListener('click', () => customDateTimeContainer.classList.toggle('hidden'));
     if (addTagBtn) addTagBtn.addEventListener('click', addTag);
     if (newTagColorInput && newTagColorWrapper) {
