@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflexión diaria</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./logo-app.png">
+    <link rel="icon" type="image/png" href="./logo-app.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior-y: contain;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .reflection-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .reflection-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%);
+            pointer-events: none;
+        }
+        .reflection-card > * {
+            position: relative;
+            z-index: 10;
+        }
+        body[data-theme="dark"] {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .bg-white,
+        body[data-theme="dark"] .bg-slate-50,
+        body[data-theme="dark"] .bg-slate-100 {
+            background-color: #1f2937 !important;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .bg-slate-200,
+        body[data-theme="dark"] .bg-slate-300 {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        body[data-theme="dark"] .text-slate-900,
+        body[data-theme="dark"] .text-slate-800,
+        body[data-theme="dark"] .text-slate-700 {
+            color: #f1f5f9 !important;
+        }
+        body[data-theme="dark"] .text-slate-600 {
+            color: #cbd5f5 !important;
+        }
+        body[data-theme="dark"] .text-slate-500,
+        body[data-theme="dark"] .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+        body[data-theme="dark"] .border-slate-200,
+        body[data-theme="dark"] .border-slate-300,
+        body[data-theme="dark"] .border-slate-100 {
+            border-color: #334155 !important;
+        }
+        body[data-theme="dark"] .reflection-card::after {
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent 60%);
+        }
+        body[data-theme="dark"] nav {
+            background-color: #1f2937 !important;
+            border-color: #334155 !important;
+        }
+        body[data-theme="dark"] .nav-link {
+            color: #cbd5f5 !important;
+        }
+        body[data-theme="dark"] .nav-link.text-blue-600 {
+            color: #60a5fa !important;
+        }
+        body[data-theme="dark"] .nav-link:hover {
+            color: #93c5fd !important;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800" data-page="reflection" data-theme="light">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl pb-24">
+        <header class="text-center mb-10">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold uppercase tracking-wide">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lamp-desk">
+                    <path d="M13 5h7"/><path d="M13 9h4"/><path d="M10 12h8"/><path d="M16 9c0 2.8-1.2 4.7-3 6"/><path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6"/><path d="M8 17v4"/><path d="M6 21h4"/>
+                </svg>
+                Reflexión del día
+            </span>
+            <h1 class="mt-4 text-4xl md:text-5xl font-bold text-slate-900">Resumen inteligente de tus notas</h1>
+            <p class="mt-3 text-slate-500 max-w-2xl mx-auto">Un vistazo curado a tus registros más relevantes para motivarte y mantener el rumbo.</p>
+        </header>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+            <div class="text-sm text-slate-500 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days text-blue-600">
+                    <path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M21 6h-18a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/>
+                </svg>
+                <span id="reflection-date-display" class="font-medium">Hoy</span>
+            </div>
+            <button id="refresh-reflection-btn" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw">
+                    <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15.54-5.54L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15.54 5.54L3 16"/>
+                </svg>
+                Actualizar resumen
+            </button>
+        </div>
+
+        <main class="space-y-8">
+            <section aria-labelledby="today-note-heading">
+                <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="today-note-heading" class="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+                                <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-star">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                </span>
+                                Nota del día
+                            </h2>
+                            <p class="mt-2 text-sm text-slate-500">Una selección especial entre todas tus notas almacenadas.</p>
+                        </div>
+                        <span id="daily-note-tags" class="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-100 px-3 py-1 rounded-full hidden"></span>
+                    </div>
+                    <article class="mt-6 space-y-3" id="daily-note-card">
+                        <h3 id="daily-note-title" class="text-xl font-semibold text-slate-800">Aún no hay nota destacada.</h3>
+                        <p id="daily-note-content" class="text-slate-600">Pulsa en “Actualizar resumen” para obtener una recomendación.</p>
+                        <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                            <span id="daily-note-date" class="inline-flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
+                                    <circle cx="12" cy="12" r="10"/><path d="m16 12-3.5 2.5v-5"/>
+                                </svg>
+                                <span>--</span>
+                            </span>
+                            <span id="daily-note-tags-list" class="inline-flex flex-wrap gap-1"></span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section aria-labelledby="idea-day-heading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="idea-day-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-purple-500/10 text-purple-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle">
+                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                                    </svg>
+                                </span>
+                                Idea del día
+                            </h2>
+                            <p class="mt-2 text-sm text-slate-500">Inspiración directa desde la API de Quotable.</p>
+                        </div>
+                        <span id="idea-day-author" class="text-xs font-medium text-slate-500 text-right"></span>
+                    </div>
+                    <blockquote id="idea-day-quote" class="mt-5 text-slate-700 italic quote">Aún no hay cita disponible.</blockquote>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <button id="idea-refresh-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition">Nueva cita</button>
+                        <button id="idea-translate-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">Traducir al español</button>
+                    </div>
+                    <p id="idea-loading" class="loading mt-3 text-sm text-slate-500 hidden">Cargando cita...</p>
+                    <p id="idea-error" class="error mt-3 text-sm text-red-500 hidden"></p>
+                    <footer class="mt-4 text-xs text-slate-500" id="idea-day-source">Pulsa “Actualizar resumen” o “Nueva cita” para obtener inspiración.</footer>
+                </div>
+
+                <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2" id="week-note-heading">
+                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-check-2">
+                                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/>
+                                    </svg>
+                                </span>
+                                Esta semana
+                            </h2>
+                            <p class="mt-2 text-sm text-slate-500">Un recuerdo aleatorio del rango semanal actual.</p>
+                        </div>
+                        <span id="week-note-date" class="text-xs font-semibold uppercase tracking-wide text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full hidden"></span>
+                    </div>
+                    <article class="mt-5 space-y-3" id="week-note-card">
+                        <h3 id="week-note-title" class="text-lg font-semibold text-slate-800">Sin registros semanales.</h3>
+                        <p id="week-note-content" class="text-slate-600">Todavía no encontramos notas en la semana en curso.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section aria-labelledby="yearly-memory-heading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="year-ago-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hourglass">
+                                        <path d="M5 3h14"/><path d="M5 21h14"/><path d="M17 3v5a2 2 0 0 1-.6 1.4L13 13l3.4 3.6a2 2 0 0 1 .6 1.4v3"/><path d="M7 21v-3a2 2 0 0 1 .6-1.4L11 13 7.6 9.4A2 2 0 0 1 7 8V3"/>
+                                    </svg>
+                                </span>
+                                Hace un año
+                            </h2>
+                            <p class="mt-2 text-sm text-slate-500">Revive lo que escribiste en esta misma fecha hace un año.</p>
+                        </div>
+                        <span id="year-ago-date" class="text-xs font-semibold text-slate-500"></span>
+                    </div>
+                    <article class="mt-5 space-y-3" id="year-ago-card">
+                        <h3 id="year-ago-title" class="text-lg font-semibold text-slate-800">Sin notas almacenadas.</h3>
+                        <p id="year-ago-content" class="text-slate-600">No encontramos notas registradas en esta fecha del año anterior.</p>
+                        <p id="year-ago-error" class="text-sm text-red-500 hidden">No hay coincidencias para la fecha de hace un año.</p>
+                    </article>
+                </div>
+
+                <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="current-year-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                                <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-compass">
+                                        <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                                    </svg>
+                                </span>
+                                El camino
+                            </h2>
+                            <p class="mt-2 text-sm text-slate-500">Un recordatorio aleatorio de tu progreso a lo largo del año actual.</p>
+                        </div>
+                        <span id="current-year-note-date" class="text-xs font-semibold uppercase tracking-wide text-sky-600 bg-sky-100 px-3 py-1 rounded-full hidden"></span>
+                    </div>
+                    <article class="mt-5 space-y-3" id="current-year-card">
+                        <h3 id="current-year-note-title" class="text-lg font-semibold text-slate-800">Sin registros anuales.</h3>
+                        <p id="current-year-note-content" class="text-slate-600">Necesitas al menos una nota en el año actual para ver resultados.</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <section class="mt-10 bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Cómo funciona este resumen</h2>
+                    <p class="mt-2 text-sm text-slate-500 max-w-2xl">Los datos se obtienen de tus notas guardadas localmente y se actualizan en cada sesión. Si faltan registros, verás mensajes informativos para ayudarte a identificarlos.</p>
+                </div>
+                <div class="text-sm text-slate-500 space-y-2">
+                    <p class="flex items-center gap-2">
+                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-blue-500"></span>
+                        <span>Nota del día = aleatoria entre todas las notas.</span>
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-purple-500"></span>
+                        <span>Idea del día = cita desde <a href="https://quotable.io" class="text-blue-600 hover:underline" target="_blank" rel="noopener">Quotable</a>.</span>
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                        <span>Semana, año pasado y año actual = filtros temporales específicos.</span>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 z-30">
+        <a href="index.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-tabs"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M15 2v20"/><path d="M15 7h5"/><path d="M15 12h5"/><path d="M15 17h5"/></svg>
+            <span class="text-xs font-medium mt-1">Notas</span>
+        </a>
+        <a href="historial.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span class="text-xs font-medium mt-1">Historial</span>
+        </a>
+        <a href="reflexion.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lamp-desk"><path d="M13 5h7"/><path d="M13 9h4"/><path d="M10 12h8"/><path d="M16 9c0 2.8-1.2 4.7-3 6"/><path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6"/><path d="M8 17v4"/><path d="M6 21h4"/></svg>
+            <span class="text-xs font-medium mt-1">Reflexión</span>
+        </a>
+        <a href="ajustes.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="text-xs font-medium mt-1">Ajustes</span>
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const DB_NAME = 'NotesDB';
+            const DB_VERSION = 6;
+            const NOTES_STORE = 'notes';
+            const TAGS_STORE = 'tags';
+            const QUOTE_API_URL = 'https://api.quotable.io/random?maxLength=160';
+
+            const reflectionDateDisplay = document.getElementById('reflection-date-display');
+            const refreshButton = document.getElementById('refresh-reflection-btn');
+
+            const dailyNoteTitle = document.getElementById('daily-note-title');
+            const dailyNoteContent = document.getElementById('daily-note-content');
+            const dailyNoteDateWrapper = document.getElementById('daily-note-date');
+            const dailyNoteTagsBadge = document.getElementById('daily-note-tags');
+            const dailyNoteTagsList = document.getElementById('daily-note-tags-list');
+
+            const ideaDayQuoteEl = document.getElementById('idea-day-quote');
+            const ideaDayAuthorEl = document.getElementById('idea-day-author');
+            const ideaDaySourceEl = document.getElementById('idea-day-source');
+            const ideaRefreshBtn = document.getElementById('idea-refresh-btn');
+            const ideaTranslateBtn = document.getElementById('idea-translate-btn');
+            const ideaLoadingEl = document.getElementById('idea-loading');
+            const ideaErrorEl = document.getElementById('idea-error');
+
+            const weekNoteTitle = document.getElementById('week-note-title');
+            const weekNoteContent = document.getElementById('week-note-content');
+            const weekNoteDateBadge = document.getElementById('week-note-date');
+
+            const yearAgoTitle = document.getElementById('year-ago-title');
+            const yearAgoContent = document.getElementById('year-ago-content');
+            const yearAgoDateEl = document.getElementById('year-ago-date');
+            const yearAgoErrorEl = document.getElementById('year-ago-error');
+
+            const currentYearTitle = document.getElementById('current-year-note-title');
+            const currentYearContent = document.getElementById('current-year-note-content');
+            const currentYearDateBadge = document.getElementById('current-year-note-date');
+
+            let dbInstance = null;
+            let isReloading = false;
+            let currentQuote = null;
+            let isQuoteTranslated = false;
+
+            const SPANISH_FALLBACK_QUOTES = [
+                {
+                    content: 'El éxito no es la clave de la felicidad. La felicidad es la clave del éxito. Si amas lo que haces, tendrás éxito.',
+                    author: 'Albert Schweitzer'
+                },
+                {
+                    content: 'El único modo de hacer un gran trabajo es amar lo que haces.',
+                    author: 'Steve Jobs'
+                },
+                {
+                    content: 'No cuentes los días, haz que los días cuenten.',
+                    author: 'Muhammad Ali'
+                },
+                {
+                    content: 'La vida es lo que pasa mientras estás ocupado haciendo otros planes.',
+                    author: 'John Lennon'
+                },
+                {
+                    content: 'Siempre parece imposible hasta que se hace.',
+                    author: 'Nelson Mandela'
+                },
+                {
+                    content: 'La mejor venganza es un éxito masivo.',
+                    author: 'Frank Sinatra'
+                },
+                {
+                    content: 'El camino hacia el éxito y el camino hacia el fracaso son casi exactamente los mismos.',
+                    author: 'Colin R. Davis'
+                },
+                {
+                    content: 'La lógica te llevará de la A a la Z; la imaginación te llevará a todas partes.',
+                    author: 'Albert Einstein'
+                }
+            ];
+
+            const openDatabase = () => new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(NOTES_STORE)) {
+                        db.createObjectStore(NOTES_STORE, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(TAGS_STORE)) {
+                        db.createObjectStore(TAGS_STORE, { keyPath: 'name' });
+                    }
+                };
+
+            request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    db.onversionchange = () => db.close();
+                    resolve(db);
+                };
+
+                request.onerror = () => {
+                    reject(request.error || new Error('No se pudo abrir la base de datos.'));
+                };
+            });
+
+            const getAllFromStore = (db, storeName) => new Promise((resolve, reject) => {
+                if (!db.objectStoreNames.contains(storeName)) {
+                    resolve([]);
+                    return;
+                }
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    resolve(Array.isArray(request.result) ? request.result : []);
+                };
+                request.onerror = () => reject(request.error);
+            });
+
+            const getContrastingTextColor = (hex) => {
+                if (!hex || typeof hex !== 'string' || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 4)) {
+                    return '#0f172a';
+                }
+                let formattedHex = hex;
+                if (hex.length === 4) {
+                    formattedHex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+                }
+                const r = parseInt(formattedHex.slice(1, 3), 16);
+                const g = parseInt(formattedHex.slice(3, 5), 16);
+                const b = parseInt(formattedHex.slice(5, 7), 16);
+                const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                return brightness >= 128 ? '#0f172a' : '#ffffff';
+            };
+
+            const renderTagChips = (container, tagNames = [], tagsMap = {}) => {
+                if (!container) return;
+                container.innerHTML = '';
+                if (!Array.isArray(tagNames) || tagNames.length === 0) return;
+
+                tagNames.forEach((tagName) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'text-xs font-semibold px-2 py-1 rounded-full bg-slate-200 text-slate-700';
+                    const tagData = tagsMap[tagName];
+                    if (tagData?.color) {
+                        chip.style.backgroundColor = tagData.color;
+                        chip.style.color = getContrastingTextColor(tagData.color);
+                    }
+                    chip.textContent = tagName;
+                    container.appendChild(chip);
+                });
+            };
+
+            const setTextContent = (element, value) => {
+                if (!element) return;
+                element.textContent = value;
+            };
+
+            const toggleBadge = (element, textValue) => {
+                if (!element) return;
+                if (textValue) {
+                    element.textContent = textValue;
+                    element.classList.remove('hidden');
+                } else {
+                    element.textContent = '';
+                    element.classList.add('hidden');
+                }
+            };
+
+            const updateDateLabel = (wrapper, date) => {
+                if (!wrapper) return;
+                const textSpan = wrapper.querySelector('span:last-child');
+                if (!textSpan) return;
+                if (date instanceof Date && !Number.isNaN(date.getTime())) {
+                    textSpan.textContent = date.toLocaleString('es-ES', {
+                        dateStyle: 'long',
+                        timeStyle: 'short'
+                    });
+                } else {
+                    textSpan.textContent = '--';
+                }
+            };
+
+            const setButtonDisabled = (button, disabled) => {
+                if (!button) return;
+                button.disabled = disabled;
+                button.classList.toggle('opacity-60', disabled);
+                button.classList.toggle('cursor-not-allowed', disabled);
+            };
+
+            const showIdeaLoading = (message = 'Cargando cita...') => {
+                if (!ideaLoadingEl) return;
+                ideaLoadingEl.textContent = message;
+                ideaLoadingEl.classList.remove('hidden');
+            };
+
+            const hideIdeaLoading = () => {
+                if (!ideaLoadingEl) return;
+                ideaLoadingEl.classList.add('hidden');
+            };
+
+            const showIdeaError = (message) => {
+                if (!ideaErrorEl) return;
+                ideaErrorEl.textContent = message;
+                ideaErrorEl.classList.remove('hidden');
+            };
+
+            const clearIdeaError = () => {
+                if (!ideaErrorEl) return;
+                ideaErrorEl.textContent = '';
+                ideaErrorEl.classList.add('hidden');
+            };
+
+            const updateTranslateButtonState = () => {
+                if (!ideaTranslateBtn) return;
+                const shouldDisable = !currentQuote || currentQuote.language === 'es' || isQuoteTranslated;
+                setButtonDisabled(ideaTranslateBtn, shouldDisable);
+            };
+
+            const renderIdeaQuote = ({ content, author }, languageIndicator, indicatorClass = '') => {
+                if (ideaDayQuoteEl) {
+                    ideaDayQuoteEl.textContent = `"${content}"`;
+                }
+                if (ideaDayAuthorEl) {
+                    const spanClass = indicatorClass ? ` ${indicatorClass}` : '';
+                    ideaDayAuthorEl.innerHTML = author
+                        ? `- ${author} <span class="language-indicator${spanClass}">${languageIndicator}</span>`
+                        : '';
+                }
+            };
+
+            const useSpanishQuote = () => {
+                const randomIndex = Math.floor(Math.random() * SPANISH_FALLBACK_QUOTES.length);
+                currentQuote = { ...SPANISH_FALLBACK_QUOTES[randomIndex], language: 'es' };
+                isQuoteTranslated = true;
+                renderIdeaQuote(currentQuote, 'Español', 'original');
+                setTextContent(ideaDaySourceEl, 'Cita de respaldo en español.');
+                updateTranslateButtonState();
+            };
+
+            const fetchEnglishQuote = async () => {
+                if (!ideaRefreshBtn) return;
+                showIdeaLoading('Cargando cita...');
+                clearIdeaError();
+                setButtonDisabled(ideaRefreshBtn, true);
+                setButtonDisabled(ideaTranslateBtn, true);
+
+                try {
+                    const response = await fetch('https://api.quotable.io/random', { cache: 'no-store' });
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+                    currentQuote = {
+                        content: data.content,
+                        author: data.author,
+                        language: 'en'
+                    };
+                    isQuoteTranslated = false;
+                    renderIdeaQuote(currentQuote, 'Inglés');
+                    if (ideaDaySourceEl) {
+                        ideaDaySourceEl.innerHTML = 'Cita proporcionada por <a href="https://quotable.io" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Quotable</a>.';
+                    }
+                } catch (error) {
+                    console.error('Error fetching quote from API:', error);
+                    useSpanishQuote();
+                    showIdeaError('No se pudo obtener una cita en inglés. Mostrando cita en español.');
+                } finally {
+                    hideIdeaLoading();
+                    setButtonDisabled(ideaRefreshBtn, false);
+                    updateTranslateButtonState();
+                }
+            };
+
+            const translateQuote = async () => {
+                if (!currentQuote) {
+                    showIdeaError('No hay una cita para traducir.');
+                    return;
+                }
+                if (currentQuote.language === 'es' || isQuoteTranslated) {
+                    showIdeaError('La cita ya está en español o traducida.');
+                    return;
+                }
+
+                clearIdeaError();
+                showIdeaLoading('Traduciendo cita...');
+                setButtonDisabled(ideaTranslateBtn, true);
+
+                try {
+                    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(currentQuote.content)}&langpair=en|es`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+                    if (data.responseStatus !== 200) {
+                        throw new Error(data.responseDetails || 'Error en la traducción.');
+                    }
+
+                    const translatedText = data.responseData?.translatedText;
+                    if (!translatedText) {
+                        throw new Error('La respuesta de la API no contenía traducción.');
+                    }
+
+                    currentQuote = {
+                        ...currentQuote,
+                        content: translatedText,
+                        language: 'es'
+                    };
+                    isQuoteTranslated = true;
+                    renderIdeaQuote(currentQuote, 'Traducido', 'translated');
+                    setTextContent(ideaDaySourceEl, 'Cita traducida automáticamente con MyMemory.');
+                } catch (error) {
+                    console.error('Error translating quote:', error);
+                    showIdeaError('No se pudo traducir la cita en este momento. Intenta obtener una nueva cita.');
+                } finally {
+                    hideIdeaLoading();
+                    updateTranslateButtonState();
+                }
+            };
+
+            const getStartOfWeek = (referenceDate = new Date()) => {
+                const start = new Date(referenceDate);
+                start.setHours(0, 0, 0, 0);
+                const diff = (start.getDay() + 6) % 7;
+                start.setDate(start.getDate() - diff);
+                return start;
+            };
+
+            const getEndOfWeek = (startOfWeek) => {
+                const end = new Date(startOfWeek);
+                end.setDate(end.getDate() + 6);
+                end.setHours(23, 59, 59, 999);
+                return end;
+            };
+
+            const pickRandom = (items = []) => {
+                if (!Array.isArray(items) || items.length === 0) return null;
+                const index = Math.floor(Math.random() * items.length);
+                return items[index];
+            };
+
+            const sanitizeNotes = (notes = []) => {
+                return notes.filter((note) => note && typeof note.id === 'number');
+            };
+
+            const createTagsMap = (tags = []) => {
+                return tags.reduce((acc, tag) => {
+                    if (tag && typeof tag.name === 'string') {
+                        acc[tag.name] = tag;
+                    }
+                    return acc;
+                }, {});
+            };
+
+            const renderDailyNote = (notes, tagsMap) => {
+                const randomNote = pickRandom(notes);
+                if (randomNote) {
+                    const noteDate = new Date(randomNote.id);
+                    setTextContent(dailyNoteTitle, randomNote.title || 'Nota sin título');
+                    setTextContent(dailyNoteContent, randomNote.content || 'Sin contenido registrado.');
+                    updateDateLabel(dailyNoteDateWrapper, noteDate);
+                    const tagsCount = Array.isArray(randomNote.tags) ? randomNote.tags.length : 0;
+                    toggleBadge(dailyNoteTagsBadge, tagsCount > 0 ? `${tagsCount} etiqueta${tagsCount === 1 ? '' : 's'}` : '');
+                    renderTagChips(dailyNoteTagsList, randomNote.tags || [], tagsMap);
+                } else {
+                    setTextContent(dailyNoteTitle, 'Aún no hay nota destacada.');
+                    setTextContent(dailyNoteContent, 'Registra notas o pulsa en "Actualizar resumen" más tarde.');
+                    updateDateLabel(dailyNoteDateWrapper, null);
+                    toggleBadge(dailyNoteTagsBadge, '');
+                    renderTagChips(dailyNoteTagsList, [], {});
+                }
+            };
+
+            const renderWeekNote = (notes) => {
+                const startOfWeek = getStartOfWeek();
+                const endOfWeek = getEndOfWeek(startOfWeek);
+                const notesThisWeek = notes.filter((note) => {
+                    const noteDate = new Date(note.id);
+                    return noteDate >= startOfWeek && noteDate <= endOfWeek;
+                });
+                const chosenNote = pickRandom(notesThisWeek);
+                if (chosenNote) {
+                    const noteDate = new Date(chosenNote.id);
+                    setTextContent(weekNoteTitle, chosenNote.title || 'Nota sin título');
+                    setTextContent(weekNoteContent, chosenNote.content || 'Sin contenido registrado.');
+                    toggleBadge(weekNoteDateBadge, noteDate.toLocaleDateString('es-ES', {
+                        weekday: 'short',
+                        day: '2-digit',
+                        month: 'short'
+                    }).replace(/\.$/, ''));
+                } else {
+                    setTextContent(weekNoteTitle, 'Sin registros semanales.');
+                    setTextContent(weekNoteContent, 'Todavía no encontramos notas en la semana en curso.');
+                    toggleBadge(weekNoteDateBadge, '');
+                }
+            };
+
+            const renderYearAgoNote = (notes) => {
+                const today = new Date();
+                const lastYearDate = new Date(today);
+                lastYearDate.setFullYear(today.getFullYear() - 1);
+                const targetYear = lastYearDate.getFullYear();
+                const targetMonth = lastYearDate.getMonth();
+                const targetDay = lastYearDate.getDate();
+
+                const matchingNotes = notes.filter((note) => {
+                    const noteDate = new Date(note.id);
+                    return noteDate.getFullYear() === targetYear &&
+                        noteDate.getMonth() === targetMonth &&
+                        noteDate.getDate() === targetDay;
+                });
+
+                const note = pickRandom(matchingNotes);
+                if (note) {
+                    const noteDate = new Date(note.id);
+                    setTextContent(yearAgoTitle, note.title || 'Nota sin título');
+                    setTextContent(yearAgoContent, note.content || 'Sin contenido registrado.');
+                    setTextContent(yearAgoDateEl, noteDate.toLocaleDateString('es-ES', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    }));
+                    if (yearAgoErrorEl) {
+                        yearAgoErrorEl.classList.add('hidden');
+                    }
+                } else {
+                    setTextContent(yearAgoTitle, 'Sin notas almacenadas.');
+                    setTextContent(yearAgoContent, 'No encontramos notas registradas en esta fecha del año anterior.');
+                    setTextContent(yearAgoDateEl, '');
+                    if (yearAgoErrorEl) {
+                        yearAgoErrorEl.textContent = 'No hay coincidencias para la fecha de hace un año.';
+                        yearAgoErrorEl.classList.remove('hidden');
+                    }
+                }
+            };
+
+            const renderCurrentYearNote = (notes) => {
+                const currentYear = new Date().getFullYear();
+                const notesThisYear = notes.filter((note) => {
+                    const noteDate = new Date(note.id);
+                    return noteDate.getFullYear() === currentYear;
+                });
+                const chosenNote = pickRandom(notesThisYear);
+                if (chosenNote) {
+                    const noteDate = new Date(chosenNote.id);
+                    setTextContent(currentYearTitle, chosenNote.title || 'Nota sin título');
+                    setTextContent(currentYearContent, chosenNote.content || 'Sin contenido registrado.');
+                    toggleBadge(currentYearDateBadge, noteDate.toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'long'
+                    }));
+                } else {
+                    setTextContent(currentYearTitle, 'Sin registros anuales.');
+                    setTextContent(currentYearContent, 'Necesitas al menos una nota en el año actual para ver resultados.');
+                    toggleBadge(currentYearDateBadge, '');
+                }
+            };
+
+            const toggleRefreshState = (loading) => {
+                if (!refreshButton) return;
+                isReloading = loading;
+                refreshButton.disabled = loading;
+                refreshButton.classList.toggle('opacity-60', loading);
+                refreshButton.classList.toggle('cursor-not-allowed', loading);
+                refreshButton.setAttribute('aria-busy', loading ? 'true' : 'false');
+            };
+
+            const loadNotesAndTags = async () => {
+                if (!dbInstance) {
+                    dbInstance = await openDatabase();
+                }
+                const [notes, tags] = await Promise.all([
+                    getAllFromStore(dbInstance, NOTES_STORE),
+                    getAllFromStore(dbInstance, TAGS_STORE)
+                ]);
+                const sanitized = sanitizeNotes(notes);
+                sanitized.sort((a, b) => b.id - a.id);
+                return {
+                    notes: sanitized,
+                    tagsMap: createTagsMap(tags)
+                };
+            };
+
+            const hydrateReflection = async () => {
+                if (isReloading) return;
+                toggleRefreshState(true);
+                const now = new Date();
+                if (reflectionDateDisplay) {
+                    reflectionDateDisplay.textContent = now.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                try {
+                    const { notes, tagsMap } = await loadNotesAndTags();
+                    renderDailyNote(notes, tagsMap);
+                    renderWeekNote(notes);
+                    renderYearAgoNote(notes);
+                    renderCurrentYearNote(notes);
+                } catch (error) {
+                    console.error('No se pudieron cargar los datos de reflexión.', error);
+                    renderDailyNote([], {});
+                    renderWeekNote([]);
+                    renderYearAgoNote([]);
+                    renderCurrentYearNote([]);
+                }
+                await fetchEnglishQuote();
+                toggleRefreshState(false);
+            };
+
+            if (ideaRefreshBtn) {
+                ideaRefreshBtn.addEventListener('click', () => {
+                    fetchEnglishQuote();
+                });
+            }
+
+            if (ideaTranslateBtn) {
+                ideaTranslateBtn.addEventListener('click', () => {
+                    translateQuote();
+                });
+            }
+
+            if (refreshButton) {
+                refreshButton.addEventListener('click', () => {
+                    hydrateReflection();
+                });
+            }
+
+            hydrateReflection();
+        });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+
