@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas del Diario</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./logo-app.png">
+    <link rel="icon" type="image/png" href="./logo-app.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior-y: contain;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+            border-radius: 1.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%);
+            pointer-events: none;
+        }
+        .stat-card-content {
+            position: relative;
+            z-index: 10;
+        }
+        .stat-highlight {
+            background: rgba(37, 99, 235, 0.12);
+            border-radius: 9999px;
+        }
+        .detail-card {
+            border-radius: 1.5rem;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
+        }
+        .tag-pill {
+            border-radius: 9999px;
+            background: rgba(37, 99, 235, 0.08);
+            color: #1d4ed8;
+        }
+        body[data-theme="dark"] {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .bg-white,
+        body[data-theme="dark"] .bg-slate-50,
+        body[data-theme="dark"] .bg-slate-100 {
+            background-color: #1f2937 !important;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .bg-slate-200,
+        body[data-theme="dark"] .bg-slate-300 {
+            background-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        body[data-theme="dark"] .text-slate-900,
+        body[data-theme="dark"] .text-slate-800,
+        body[data-theme="dark"] .text-slate-700 {
+            color: #f1f5f9 !important;
+        }
+        body[data-theme="dark"] .text-slate-600 {
+            color: #cbd5f5 !important;
+        }
+        body[data-theme="dark"] .text-slate-500,
+        body[data-theme="dark"] .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+        body[data-theme="dark"] select,
+        body[data-theme="dark"] input,
+        body[data-theme="dark"] textarea {
+            background-color: #111827;
+            color: #f8fafc;
+            border-color: #334155;
+        }
+        body[data-theme="dark"] .border-slate-300,
+        body[data-theme="dark"] .border-slate-200,
+        body[data-theme="dark"] .border-slate-100,
+        body[data-theme="dark"] .border-b {
+            border-color: #334155 !important;
+        }
+        body[data-theme="dark"] .nav-link {
+            color: #cbd5f5 !important;
+        }
+        body[data-theme="dark"] .nav-link.text-blue-600 {
+            color: #60a5fa !important;
+        }
+        body[data-theme="dark"] .nav-link:hover {
+            color: #93c5fd !important;
+        }
+        body[data-theme="dark"] nav {
+            background-color: #1f2937 !important;
+            border-color: #334155 !important;
+        }
+        body[data-theme="dark"] .stat-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.82));
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        body[data-theme="dark"] .stat-card::after {
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.25), transparent 55%);
+        }
+        body[data-theme="dark"] .detail-card {
+            background: linear-gradient(140deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.88));
+            border-color: rgba(148, 163, 184, 0.25);
+            box-shadow: 0 28px 48px rgba(2, 6, 23, 0.55);
+        }
+        body[data-theme="dark"] .tag-pill {
+            background: rgba(59, 130, 246, 0.22);
+            color: #bfdbfe;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        body[data-theme="dark"] .highlight-surface {
+            background: rgba(37, 99, 235, 0.16);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800" data-page="stats" data-theme="light">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl pb-24">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Estadísticas del Diario</h1>
+            <p class="text-slate-500 mt-3 max-w-2xl mx-auto text-base md:text-lg">
+                Visualiza un resumen de tu actividad, tus hábitos de escritura y la distribución de etiquetas en tus notas guardadas en IndexedDB.
+            </p>
+        </header>
+
+        <section aria-labelledby="stats-overview-heading" class="mb-12">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+                <div>
+                    <h2 id="stats-overview-heading" class="text-2xl font-semibold text-slate-900">Resumen general</h2>
+                    <p class="text-sm text-slate-500">Métricas clave de tu diario digital.</p>
+                </div>
+                <span id="stats-last-update" class="text-xs font-medium text-slate-500 bg-slate-200 px-3 py-1 rounded-full" title="Última actualización disponible">Actualizado: --</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-pen">
+                                    <path d="m15 4 1 1 3-3a2 2 0 0 0-3-3l-3 3z"/>
+                                    <path d="M10 9l6-6"/>
+                                    <path d="M11 4H7a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h10a2 2 0 0 0 2-2V9"/>
+                                </svg>
+                                Total de notas
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #1</span>
+                        </div>
+                        <p id="total-notes-count" class="text-4xl font-bold text-slate-900">0</p>
+                        <p class="text-sm text-slate-500 mt-3">Cantidad total de entradas registradas.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-clock">
+                                    <path d="M21 7v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7"/>
+                                    <path d="M16 3v4"/>
+                                    <path d="M8 3v4"/>
+                                    <path d="M3 11h18"/>
+                                    <circle cx="12" cy="16" r="3"/>
+                                    <path d="m12 14 1 1-1 1"/>
+                                </svg>
+                                Promedio semanal
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #2</span>
+                        </div>
+                        <p id="average-notes-per-week" class="text-4xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Notas creadas en promedio cada semana.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hourglass">
+                                    <path d="M19 18H5"/>
+                                    <path d="M5 3h14"/>
+                                    <path d="M6 3a6 6 0 0 0 12 0"/>
+                                    <path d="M6 18a6 6 0 0 1 12 0"/>
+                                </svg>
+                                Edad del diario
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #3</span>
+                        </div>
+                        <p id="journal-age" class="text-3xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Tiempo transcurrido desde tu primera nota.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-left">
+                                    <path d="M21 6H3"/>
+                                    <path d="M15 12H3"/>
+                                    <path d="M17 18H3"/>
+                                </svg>
+                                Palabras por nota
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #4</span>
+                        </div>
+                        <p id="average-words-per-note" class="text-3xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Promedio de palabras escritas por nota.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags">
+                                    <path d="M3 6v6a2 2 0 0 0 .59 1.41l7 7a2 2 0 0 0 2.82 0l6-6a2 2 0 0 0 0-2.82l-7-7A2 2 0 0 0 11 3H5a2 2 0 0 0-2 2Z"/>
+                                    <path d="M7.5 7.5h.01"/>
+                                </svg>
+                                Etiquetas por nota
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #5</span>
+                        </div>
+                        <p id="average-tags-per-note" class="text-3xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Promedio de etiquetas asociadas a cada nota.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sunrise">
+                                    <path d="M3 17h18"/>
+                                    <path d="M12 5V2"/>
+                                    <path d="m4.22 10.22 1.42-1.42"/>
+                                    <path d="M1 17h22"/>
+                                    <path d="m19.78 10.22-1.42-1.42"/>
+                                    <path d="M12 9a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4Z"/>
+                                </svg>
+                                Franja más activa
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #6</span>
+                        </div>
+                        <p id="top-time-range" class="text-2xl font-bold text-slate-900">--:-- - --:--</p>
+                        <p id="top-time-range-count" class="text-sm text-slate-500 mt-3">Notas registradas en la franja: --</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section aria-labelledby="notes-distribution-heading" class="mb-12">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                    <h2 id="notes-distribution-heading" class="text-2xl font-semibold text-slate-900">Actividad detallada</h2>
+                    <p class="text-sm text-slate-500">Explora cada nota y cómo se distribuyen tus etiquetas.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-200 font-semibold">Notas totales: <span id="notes-total-indicator">0</span></span>
+                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-200 font-semibold">Etiquetas únicas: <span id="tags-total-indicator">0</span></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <article class="detail-card p-6">
+                    <header class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-checks text-blue-600">
+                                <path d="m9 11 3 3L22 4"/>
+                                <path d="M5 19h14"/>
+                                <path d="M5 13h14"/>
+                                <path d="M5 7h14"/>
+                            </svg>
+                            Notas registradas <!-- El total en numero -->
+                        </h3>
+                        <span id="notes-list-empty" class="text-xs font-medium text-slate-400 hidden">Sin datos disponibles</span>
+                    </header>
+                    <div class="space-y-4 max-h-[420px] overflow-y-auto pr-2" id="notes-list" aria-live="polite"></div>
+                    <template id="note-summary-template">
+                        <article class="rounded-2xl border border-slate-200 px-4 py-4 bg-white/80 hover:bg-white transition-colors note-summary">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h4 class="text-base font-semibold text-slate-900" data-note-title>--</h4>
+                                    <p class="text-xs text-slate-500 mt-1" data-note-date>--</p>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-500 bg-slate-200 rounded-full px-3 py-1" data-note-word-count>0 palabras</span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2" data-note-tags></div>
+                        </article>
+                    </template>
+                    <template id="note-tag-pill-template">
+                        <span class="text-xs font-semibold tag-pill px-3 py-1" data-tag-name>#Etiqueta</span>
+                    </template>
+                </article>
+
+                <article class="detail-card p-6">
+                    <header class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pie-chart text-blue-600">
+                                <path d="M21.21 15.89A10 10 0 1 1 13 2.05"/>
+                                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                            </svg>
+                            Presencia de etiquetas
+                        </h3>
+                        <span id="tag-frequency-empty" class="text-xs font-medium text-slate-400 hidden">Sin etiquetas registradas</span>
+                    </header>
+                    <p class="text-sm text-slate-500 mb-4">Porcentaje de notas en las que está presente cada etiqueta.</p>
+                    <div class="space-y-4" id="tag-frequency-list" aria-live="polite"></div>
+                    <template id="tag-frequency-template">
+                        <div class="border border-slate-200 rounded-2xl px-4 py-4 bg-white/80 hover:bg-white transition-colors">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h4 class="text-base font-semibold text-slate-900" data-tag-frequency-name>#Etiqueta</h4>
+                                    <p class="text-xs text-slate-500 mt-1" data-tag-frequency-count>-- notas</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-semibold text-slate-900" data-tag-frequency-percentage>0%</p>
+                                    <span class="text-xs text-slate-400">del total</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-2 mt-4 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" data-tag-frequency-bar style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </template>
+                </article>
+            </div>
+        </section>
+
+        <section aria-labelledby="notes-timeline-heading" class="mb-16">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+                <div>
+                    <h2 id="notes-timeline-heading" class="text-2xl font-semibold text-slate-900">Cronología de notas</h2>
+                    <p class="text-sm text-slate-500">Vista agrupada por periodos para futuras visualizaciones.</p>
+                </div>
+                <span class="text-xs font-medium text-slate-400">Planificado para fase de análisis avanzado</span>
+            </div>
+            <div class="detail-card p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="notes-timeline-grid">
+                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-chart mb-3">
+                            <path d="M3 3v18h18"/>
+                            <path d="m19 9-5 5-4-4-3 3"/>
+                        </svg>
+                        <p class="text-sm font-medium">Aquí se mostrarán gráficas temporales próximamente.</p>
+                    </div>
+                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up mb-3">
+                            <path d="M3 17h2l4-4 4 4 8-8"/>
+                            <path d="M14 7h7v7"/>
+                        </svg>
+                        <p class="text-sm font-medium">Comparativas mensuales y semestrales.</p>
+                    </div>
+                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-presentation mb-3">
+                            <path d="M2 3h20"/>
+                            <path d="M3 3v13a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V3"/>
+                            <path d="M7 16l4-4 3 3 4-5"/>
+                        </svg>
+                        <p class="text-sm font-medium">Paneles interactivos de productividad futura.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 z-30">
+        <a href="index.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-tabs">
+                <path d="M2 6h4"/>
+                <path d="M2 10h4"/>
+                <path d="M2 14h4"/>
+                <path d="M2 18h4"/>
+                <rect width="16" height="20" x="4" y="2" rx="2"/>
+                <path d="M15 2v20"/>
+                <path d="M15 7h5"/>
+                <path d="M15 12h5"/>
+                <path d="M15 17h5"/>
+            </svg>
+            <span class="text-xs font-medium mt-1">Notas</span>
+        </a>
+        <a href="historial.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+            </svg>
+            <span class="text-xs font-medium mt-1">Historial</span>
+        </a>
+        <a href="estadistica.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-3">
+                <path d="M3 3v18h18"/>
+                <path d="M13 13h4v5h-4z"/>
+                <path d="M6 16h4v2H6z"/>
+                <path d="M18 9h4v9h-4z"/>
+            </svg>
+            <span class="text-xs font-medium mt-1">Estadísticas</span>
+        </a>
+        <a href="reflexion.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lamp-desk">
+                <path d="M13 5h7"/>
+                <path d="M13 9h4"/>
+                <path d="M10 12h8"/>
+                <path d="M16 9c0 2.8-1.2 4.7-3 6"/>
+                <path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6"/>
+                <path d="M8 17v4"/>
+                <path d="M6 21h4"/>
+            </svg>
+            <span class="text-xs font-medium mt-1">Reflexión</span>
+        </a>
+        <a href="ajustes.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="text-xs font-medium mt-1">Ajustes</span>
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const statsLastUpdateEl = document.getElementById('stats-last-update');
+            const totalNotesCountEl = document.getElementById('total-notes-count');
+            const averageNotesPerWeekEl = document.getElementById('average-notes-per-week');
+            const journalAgeEl = document.getElementById('journal-age');
+            const averageWordsPerNoteEl = document.getElementById('average-words-per-note');
+            const averageTagsPerNoteEl = document.getElementById('average-tags-per-note');
+            const topTimeRangeEl = document.getElementById('top-time-range');
+            const topTimeRangeCountEl = document.getElementById('top-time-range-count');
+            const notesTotalIndicatorEl = document.getElementById('notes-total-indicator');
+            const tagsTotalIndicatorEl = document.getElementById('tags-total-indicator');
+            const notesListEl = document.getElementById('notes-list');
+            const notesListEmptyEl = document.getElementById('notes-list-empty');
+            const noteSummaryTemplate = document.getElementById('note-summary-template');
+            const noteTagTemplate = document.getElementById('note-tag-pill-template');
+            const tagFrequencyListEl = document.getElementById('tag-frequency-list');
+            const tagFrequencyEmptyEl = document.getElementById('tag-frequency-empty');
+            const tagFrequencyTemplate = document.getElementById('tag-frequency-template');
+
+            const DB_NAME = 'NotesDB';
+            const DB_VERSION = 6;
+            const NOTES_STORE = 'notes';
+            const TAGS_STORE = 'tags';
+            const dayInMs = 24 * 60 * 60 * 1000;
+
+            const timeRanges = [
+                { label: 'Madrugada', rangeLabel: '00:00 - 05:59', predicate: (hour) => hour >= 0 && hour < 6 },
+                { label: 'Mañana', rangeLabel: '06:00 - 11:59', predicate: (hour) => hour >= 6 && hour < 12 },
+                { label: 'Tarde', rangeLabel: '12:00 - 17:59', predicate: (hour) => hour >= 12 && hour < 18 },
+                { label: 'Noche', rangeLabel: '18:00 - 23:59', predicate: (hour) => hour >= 18 && hour < 24 }
+            ];
+
+            const defaultNotesEmptyText = notesListEmptyEl?.textContent?.trim() || 'Sin datos disponibles';
+            const defaultTagEmptyText = tagFrequencyEmptyEl?.textContent?.trim() || 'Sin etiquetas registradas';
+
+            const getCurrentTheme = () => document.body?.dataset?.theme || 'light';
+
+            const normalizeHex = (hex) => {
+                if (typeof hex !== 'string') return '';
+                const trimmed = hex.trim();
+                if (!trimmed) return '';
+                if (trimmed.startsWith('#')) {
+                    if (trimmed.length === 4) {
+                        return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`;
+                    }
+                    if (trimmed.length === 7) {
+                        return trimmed;
+                    }
+                    return '';
+                }
+                if (trimmed.length === 3) {
+                    return `#${trimmed[0]}${trimmed[0]}${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}`;
+                }
+                if (trimmed.length === 6) {
+                    return `#${trimmed}`;
+                }
+                return '';
+            };
+
+            const hexToRgb = (hex) => {
+                const normalized = normalizeHex(hex);
+                if (!normalized) return null;
+                const value = normalized.slice(1);
+                const parsed = parseInt(value, 16);
+                if (Number.isNaN(parsed)) return null;
+                return {
+                    r: (parsed >> 16) & 255,
+                    g: (parsed >> 8) & 255,
+                    b: parsed & 255
+                };
+            };
+
+            const rgbToHex = ({ r, g, b }) => {
+                const clamp = (value) => Math.max(0, Math.min(255, Math.round(value)));
+                return `#${[clamp(r), clamp(g), clamp(b)].map((component) => component.toString(16).padStart(2, '0')).join('')}`;
+            };
+
+            const srgbChannelToLinear = (channel) => {
+                const normalized = channel / 255;
+                return normalized <= 0.03928
+                    ? normalized / 12.92
+                    : Math.pow((normalized + 0.055) / 1.055, 2.4);
+            };
+
+            const getRelativeLuminance = ({ r, g, b }) => {
+                const rLin = srgbChannelToLinear(r);
+                const gLin = srgbChannelToLinear(g);
+                const bLin = srgbChannelToLinear(b);
+                return (0.2126 * rLin) + (0.7152 * gLin) + (0.0722 * bLin);
+            };
+
+            const adjustColorForTheme = (hexColor) => {
+                const sanitized = normalizeHex(hexColor);
+                if (!sanitized) return '';
+                if (getCurrentTheme() !== 'dark') return sanitized;
+                const rgb = hexToRgb(sanitized);
+                if (!rgb) return sanitized;
+                const lightenFactor = 0.25;
+                const adjustChannel = (channel) => channel + (255 - channel) * lightenFactor;
+                const adjustedRgb = {
+                    r: adjustChannel(rgb.r),
+                    g: adjustChannel(rgb.g),
+                    b: adjustChannel(rgb.b)
+                };
+                return rgbToHex(adjustedRgb);
+            };
+
+            const getAccessibleTextColor = (hexColor) => {
+                const fallback = getCurrentTheme() === 'dark' ? '#f8fafc' : '#0f172a';
+                const rgb = hexToRgb(hexColor);
+                if (!rgb) return fallback;
+                const luminance = getRelativeLuminance(rgb);
+                return luminance >= 0.55 ? '#0f172a' : '#f8fafc';
+            };
+
+            const applyTagPillStyles = (pillEl, tagColor) => {
+                if (!pillEl) return;
+                const sanitizedColor = normalizeHex(tagColor);
+                pillEl.setAttribute('data-dynamic-tag-pill', 'true');
+                pillEl.dataset.tagColor = sanitizedColor;
+                if (!sanitizedColor) {
+                    pillEl.style.backgroundColor = '';
+                    pillEl.style.color = '';
+                    pillEl.style.borderColor = '';
+                    return;
+                }
+                const themedColor = adjustColorForTheme(sanitizedColor) || sanitizedColor;
+                pillEl.style.backgroundColor = themedColor;
+                pillEl.style.color = getAccessibleTextColor(themedColor);
+                pillEl.style.borderColor = 'transparent';
+            };
+
+            const applyTagAccentStyles = (element, tagColor) => {
+                if (!element) return;
+                const sanitizedColor = normalizeHex(tagColor);
+                element.setAttribute('data-dynamic-tag-accent', 'true');
+                element.dataset.tagColor = sanitizedColor;
+                if (!sanitizedColor) {
+                    element.style.color = getCurrentTheme() === 'dark' ? '#f8fafc' : '#0f172a';
+                    return;
+                }
+                const themedColor = adjustColorForTheme(sanitizedColor) || sanitizedColor;
+                element.style.color = themedColor;
+            };
+
+            const applyTagBarStyles = (element, tagColor) => {
+                if (!element) return;
+                const sanitizedColor = normalizeHex(tagColor);
+                element.setAttribute('data-dynamic-tag-bar', 'true');
+                element.dataset.tagColor = sanitizedColor;
+                if (!sanitizedColor) {
+                    element.style.backgroundColor = '';
+                    element.style.opacity = '';
+                    return;
+                }
+                const themedColor = adjustColorForTheme(sanitizedColor) || sanitizedColor;
+                element.style.backgroundColor = themedColor;
+                element.style.opacity = getCurrentTheme() === 'dark' ? '0.85' : '1';
+            };
+
+            const applyDynamicThemeStyles = () => {
+                document.querySelectorAll('[data-dynamic-tag-pill]').forEach((pill) => {
+                    applyTagPillStyles(pill, pill.dataset.tagColor || '');
+                });
+                document.querySelectorAll('[data-dynamic-tag-accent]').forEach((accent) => {
+                    applyTagAccentStyles(accent, accent.dataset.tagColor || '');
+                });
+                document.querySelectorAll('[data-dynamic-tag-bar]').forEach((bar) => {
+                    applyTagBarStyles(bar, bar.dataset.tagColor || '');
+                });
+            };
+
+            const applyDynamicCardTextColor = (element) => {
+                if (!element) return;
+                element.style.color = '#0f172a';
+            };
+
+            const observeThemeChanges = () => {
+                const body = document.body;
+                if (!body || typeof MutationObserver !== 'function') return;
+                const observer = new MutationObserver((mutations) => {
+                    const themeChanged = mutations.some((mutation) => mutation.attributeName === 'data-theme');
+                    if (themeChanged) {
+                        applyDynamicThemeStyles();
+                    }
+                });
+                observer.observe(body, { attributes: true, attributeFilter: ['data-theme'] });
+            };
+
+            observeThemeChanges();
+
+            const setText = (el, text) => {
+                if (!el) return;
+                el.textContent = text;
+            };
+
+            const toggleHidden = (el, hidden) => {
+                if (!el) return;
+                el.classList.toggle('hidden', hidden);
+            };
+
+            const formatNumber = (value, options = {}) => {
+                if (!Number.isFinite(value)) return '--';
+                const defaults = value >= 100 ? { maximumFractionDigits: 0 } : { maximumFractionDigits: 1 };
+                return value.toLocaleString('es-ES', { ...defaults, ...options });
+            };
+
+            const countWords = (text) => {
+                if (typeof text !== 'string') return 0;
+                const trimmed = text.trim();
+                if (!trimmed) return 0;
+                return trimmed.split(/\s+/).filter(Boolean).length;
+            };
+
+            const formatJournalAge = (firstDate) => {
+                if (!(firstDate instanceof Date) || Number.isNaN(firstDate.getTime())) return '--';
+                const now = new Date();
+                let diffMs = now.getTime() - firstDate.getTime();
+                if (diffMs < 0) diffMs = 0;
+
+                if (diffMs < dayInMs) {
+                    const hours = Math.max(1, Math.round(diffMs / (60 * 60 * 1000)));
+                    return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+                }
+
+                const days = Math.round(diffMs / dayInMs);
+                if (days < 30) {
+                    return `${days} ${days === 1 ? 'día' : 'días'}`;
+                }
+
+                const months = Math.round(days / 30);
+                if (months < 12) {
+                    return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+                }
+
+                const years = Math.max(1, Math.round(months / 12));
+                return `${years} ${years === 1 ? 'año' : 'años'}`;
+            };
+
+            const requestToPromise = (request) => new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            const resetStats = () => {
+                setText(statsLastUpdateEl, 'Actualizado: --');
+                setText(totalNotesCountEl, '0');
+                setText(averageNotesPerWeekEl, '--');
+                setText(journalAgeEl, '--');
+                setText(averageWordsPerNoteEl, '--');
+                setText(averageTagsPerNoteEl, '--');
+                setText(topTimeRangeEl, '--:-- - --:--');
+                setText(topTimeRangeCountEl, 'Notas registradas en la franja: --');
+                setText(notesTotalIndicatorEl, '0');
+                setText(tagsTotalIndicatorEl, '0');
+                if (notesListEl) notesListEl.innerHTML = '';
+                if (tagFrequencyListEl) tagFrequencyListEl.innerHTML = '';
+            };
+
+            const showEmptyState = () => {
+                resetStats();
+                toggleHidden(notesListEmptyEl, false);
+                toggleHidden(tagFrequencyEmptyEl, false);
+                setText(notesListEmptyEl, defaultNotesEmptyText);
+                setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+            };
+
+            const renderNotesList = (notes, tagsMap) => {
+                if (!notesListEl || !noteSummaryTemplate) return;
+                notesListEl.innerHTML = '';
+
+                if (!Array.isArray(notes) || notes.length === 0) {
+                    showEmptyState();
+                    return;
+                }
+
+                const sortedNotes = [...notes].sort((a, b) => b.id - a.id);
+                sortedNotes.forEach((note) => {
+                    const fragment = noteSummaryTemplate.content.cloneNode(true);
+                    const titleEl = fragment.querySelector('[data-note-title]');
+                    const dateEl = fragment.querySelector('[data-note-date]');
+                    const wordCountEl = fragment.querySelector('[data-note-word-count]');
+                    const tagsContainerEl = fragment.querySelector('[data-note-tags]');
+
+                    const rawTitle = typeof note.title === 'string' ? note.title.trim() : '';
+                    const title = rawTitle || 'Nota sin título';
+                    const noteDate = new Date(note.id);
+                    const dateLabel = Number.isNaN(noteDate.getTime())
+                        ? 'Fecha desconocida'
+                        : noteDate.toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+                    const wordCount = countWords(note.content);
+
+                    setText(titleEl, title);
+                    setText(dateEl, dateLabel);
+                    setText(wordCountEl, `${wordCount.toLocaleString('es-ES')} ${wordCount === 1 ? 'palabra' : 'palabras'}`);
+
+                    if (tagsContainerEl) {
+                        tagsContainerEl.innerHTML = '';
+                        const uniqueTags = Array.from(new Set(Array.isArray(note.tags) ? note.tags : []));
+                        if (uniqueTags.length === 0) {
+                            toggleHidden(tagsContainerEl, true);
+                        } else {
+                            toggleHidden(tagsContainerEl, false);
+                            uniqueTags.forEach((tagName) => {
+                                const tagInfo = tagsMap instanceof Map ? tagsMap.get(tagName) : undefined;
+                                const tagColor = typeof tagInfo?.color === 'string' ? tagInfo.color : '';
+                                if (noteTagTemplate) {
+                                    const tagFragment = noteTagTemplate.content.cloneNode(true);
+                                    const pillEl = tagFragment.querySelector('[data-tag-name]');
+                                    if (pillEl) {
+                                        pillEl.textContent = `#${tagName}`;
+                                        applyTagPillStyles(pillEl, tagColor);
+                                    }
+                                    tagsContainerEl.appendChild(tagFragment);
+                                } else {
+                                    const span = document.createElement('span');
+                                    span.className = 'text-xs font-semibold tag-pill px-3 py-1';
+                                    span.textContent = `#${tagName}`;
+                                    applyTagPillStyles(span, tagColor);
+                                    tagsContainerEl.appendChild(span);
+                                }
+                            });
+                        }
+                    }
+
+                    const noteCardEl = fragment.querySelector('.note-summary');
+                    applyDynamicCardTextColor(noteCardEl);
+
+                    notesListEl.appendChild(fragment);
+                });
+
+                toggleHidden(notesListEmptyEl, true);
+                setText(notesListEmptyEl, defaultNotesEmptyText);
+            };
+
+            const renderTagFrequency = (notes, tagsMap) => {
+                if (!tagFrequencyListEl || !tagFrequencyTemplate) return;
+                tagFrequencyListEl.innerHTML = '';
+
+                if (!Array.isArray(notes) || notes.length === 0) {
+                    toggleHidden(tagFrequencyEmptyEl, false);
+                    setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+                    return;
+                }
+
+                const tagPresence = new Map();
+                notes.forEach((note) => {
+                    const uniqueTags = Array.from(new Set(Array.isArray(note.tags) ? note.tags : []));
+                    uniqueTags.forEach((tag) => {
+                        tagPresence.set(tag, (tagPresence.get(tag) || 0) + 1);
+                    });
+                });
+
+                if (tagPresence.size === 0) {
+                    toggleHidden(tagFrequencyEmptyEl, false);
+                    setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+                    return;
+                }
+
+                const totalNotes = notes.length;
+                [...tagPresence.entries()]
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([tagName, count]) => {
+                        const fragment = tagFrequencyTemplate.content.cloneNode(true);
+                        const nameEl = fragment.querySelector('[data-tag-frequency-name]');
+                        const countEl = fragment.querySelector('[data-tag-frequency-count]');
+                        const percentageEl = fragment.querySelector('[data-tag-frequency-percentage]');
+                        const barEl = fragment.querySelector('[data-tag-frequency-bar]');
+
+                        const percentage = (count / totalNotes) * 100;
+                        setText(nameEl, `#${tagName}`);
+                        setText(countEl, `${count.toLocaleString('es-ES')} ${count === 1 ? 'nota' : 'notas'}`);
+                        setText(percentageEl, `${percentage.toFixed(1)}%`);
+                        if (barEl) {
+                            barEl.style.width = `${Math.min(100, percentage)}%`;
+                        }
+
+                        const tagInfo = tagsMap.get(tagName);
+                        const tagColor = typeof tagInfo?.color === 'string' ? tagInfo.color : '';
+                        if (nameEl) {
+                            applyTagAccentStyles(nameEl, tagColor);
+                        }
+                        if (barEl) {
+                            applyTagBarStyles(barEl, tagColor);
+                        }
+
+                        applyDynamicCardTextColor(fragment.firstElementChild);
+
+                        tagFrequencyListEl.appendChild(fragment);
+                    });
+
+                toggleHidden(tagFrequencyEmptyEl, true);
+                setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+            };
+
+            const updateOverview = (notes, tagsMap) => {
+                if (!Array.isArray(notes) || notes.length === 0) {
+                    showEmptyState();
+                    return;
+                }
+
+                const sortedByDate = [...notes].sort((a, b) => a.id - b.id);
+                const firstNoteDate = new Date(sortedByDate[0].id);
+                const lastNoteDate = new Date(sortedByDate[sortedByDate.length - 1].id);
+                const totalNotes = notes.length;
+                const uniqueTags = new Set();
+                let totalWords = 0;
+                let totalNoteTags = 0;
+
+                const rangeCounters = timeRanges.map(() => 0);
+
+                notes.forEach((note) => {
+                    totalWords += countWords(note.content);
+                    const noteTags = Array.isArray(note.tags) ? note.tags : [];
+                    totalNoteTags += noteTags.length;
+                    noteTags.forEach((tag) => uniqueTags.add(tag));
+
+                    const noteDate = new Date(note.id);
+                    if (!Number.isNaN(noteDate.getTime())) {
+                        const hour = noteDate.getHours();
+                        timeRanges.forEach((item, index) => {
+                            if (item.predicate(hour)) {
+                                rangeCounters[index] += 1;
+                            }
+                        });
+                    }
+                });
+
+                const spanMs = Math.max(1, lastNoteDate.getTime() - firstNoteDate.getTime());
+                const spanWeeks = Math.max(1, spanMs / (7 * dayInMs));
+                const averagePerWeek = totalNotes / spanWeeks;
+                const averageWords = totalWords / totalNotes;
+                const averageTags = totalNoteTags / totalNotes;
+
+                const bestRangeIndex = rangeCounters.reduce((bestIndex, value, index) => {
+                    if (value > rangeCounters[bestIndex]) return index;
+                    return bestIndex;
+                }, 0);
+                const bestRangeCount = rangeCounters[bestRangeIndex];
+
+                setText(totalNotesCountEl, totalNotes.toLocaleString('es-ES'));
+                setText(averageNotesPerWeekEl, formatNumber(averagePerWeek));
+                setText(journalAgeEl, formatJournalAge(firstNoteDate));
+                setText(averageWordsPerNoteEl, formatNumber(averageWords));
+                setText(averageTagsPerNoteEl, formatNumber(averageTags));
+                setText(notesTotalIndicatorEl, totalNotes.toLocaleString('es-ES'));
+                setText(tagsTotalIndicatorEl, uniqueTags.size.toLocaleString('es-ES'));
+
+                if (bestRangeCount > 0) {
+                    const bestRange = timeRanges[bestRangeIndex];
+                    setText(topTimeRangeEl, bestRange.rangeLabel);
+                    setText(topTimeRangeCountEl, `Notas registradas en la franja: ${bestRangeCount.toLocaleString('es-ES')}`);
+                } else {
+                    setText(topTimeRangeEl, '--:-- - --:--');
+                    setText(topTimeRangeCountEl, 'Notas registradas en la franja: --');
+                }
+
+                if (!Number.isNaN(lastNoteDate.getTime())) {
+                    const formattedDate = lastNoteDate.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+                    setText(statsLastUpdateEl, `Actualizado: ${formattedDate}`);
+                } else {
+                    setText(statsLastUpdateEl, 'Actualizado: --');
+                }
+
+                toggleHidden(notesListEmptyEl, true);
+                setText(notesListEmptyEl, defaultNotesEmptyText);
+                toggleHidden(tagFrequencyEmptyEl, true);
+                setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+
+                renderNotesList(notes, tagsMap);
+                renderTagFrequency(notes, tagsMap);
+                applyDynamicThemeStyles();
+            };
+
+            const loadStats = (db) => {
+                try {
+                    const transaction = db.transaction([NOTES_STORE, TAGS_STORE], 'readonly');
+                    const notesRequest = transaction.objectStore(NOTES_STORE).getAll();
+                    const tagsRequest = transaction.objectStore(TAGS_STORE).getAll();
+
+                    Promise.all([requestToPromise(notesRequest), requestToPromise(tagsRequest)])
+                        .then(([notesRaw, tagsRaw]) => {
+                            const notes = Array.isArray(notesRaw) ? notesRaw.filter((note) => typeof note?.id === 'number') : [];
+                            const tagsMap = new Map();
+                            if (Array.isArray(tagsRaw)) {
+                                tagsRaw.forEach((tag) => {
+                                    if (tag?.name) {
+                                        tagsMap.set(tag.name, tag);
+                                    }
+                                });
+                            }
+
+                            if (notes.length === 0) {
+                                showEmptyState();
+                                return;
+                            }
+
+                            updateOverview(notes, tagsMap);
+                        })
+                        .catch((error) => {
+                            console.error('No se pudieron obtener los datos del usuario.', error);
+                            showEmptyState();
+                        });
+                } catch (error) {
+                    console.error('Error al iniciar la transacción de estadísticas.', error);
+                    showEmptyState();
+                }
+            };
+
+            resetStats();
+
+            if (!window.indexedDB) {
+                console.warn('IndexedDB no está disponible en este navegador.');
+                showEmptyState();
+                return;
+            }
+
+            const openRequest = indexedDB.open(DB_NAME, DB_VERSION);
+            openRequest.onsuccess = (event) => {
+                const db = event.target.result;
+                loadStats(db);
+            };
+            openRequest.onerror = () => {
+                console.error('No se pudo abrir la base de datos NotesDB.');
+                showEmptyState();
+            };
+            openRequest.onblocked = () => {
+                console.warn('La base de datos está en uso por otra pestaña.');
+            };
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -80,6 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentDateDisplay = document.getElementById('current-date-display');
     const totalNoteCountDisplay = document.getElementById('total-note-count-display');
 
+    const birthdayBannerEl = document.getElementById('birthday-banner');
+    const birthdayMessageHeadingEl = document.getElementById('birthday-message-heading');
+    const birthdayMessageTextEl = document.getElementById('birthday-message-text');
+
     const historyContainer = document.getElementById('history-container');
     const noHistoryMessage = document.getElementById('no-history-message');
     const weeklyOverviewSection = document.getElementById('weekly-overview');
@@ -402,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'notes':
                 renderNotes();
                 loadUserNameGreeting();
+                loadBirthdayGreeting();
                 break;
             case 'history':
                 renderHistory();
@@ -416,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             default:
                 renderNotes();
                 loadUserNameGreeting();
+                loadBirthdayGreeting();
         }
     };
 
@@ -469,6 +475,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 birthdayStatusEl.classList.remove('text-green-600', 'text-red-600');
             }
         }, 4000);
+    };
+
+    const hideBirthdayBanner = () => {
+        if (!birthdayBannerEl) return;
+        birthdayBannerEl.classList.add('hidden');
+        birthdayBannerEl.setAttribute('aria-hidden', 'true');
+    };
+
+    const showBirthdayBanner = ({ heading, message }) => {
+        if (!birthdayBannerEl) return;
+        if (birthdayMessageHeadingEl && typeof heading === 'string') {
+            birthdayMessageHeadingEl.textContent = heading;
+        }
+        if (birthdayMessageTextEl && typeof message === 'string') {
+            birthdayMessageTextEl.textContent = message;
+        }
+        birthdayBannerEl.classList.remove('hidden');
+        birthdayBannerEl.setAttribute('aria-hidden', 'false');
+    };
+
+    const formatBirthdayHeading = (name) => {
+        const trimmedName = typeof name === 'string' ? name.trim() : '';
+        return trimmedName ? `¡Feliz cumpleaños, ${trimmedName}!` : '¡Feliz cumpleaños!';
+    };
+
+    const formatBirthdayMessage = (name) => {
+        const trimmedName = typeof name === 'string' ? name.trim() : '';
+        return trimmedName
+            ? `Que hoy sea un día lleno de inspiración y alegría, ${trimmedName}.`
+            : 'Que hoy sea un día lleno de inspiración y alegría.';
+    };
+
+    const isTodayBirthday = (month, day, referenceDate = new Date()) => {
+        if (!month || !day || Number.isNaN(month) || Number.isNaN(day)) return false;
+        return referenceDate.getMonth() + 1 === month && referenceDate.getDate() === day;
+    };
+
+    const fetchSettingsEntry = async (key) => {
+        if (!isSettingsStoreReady()) return undefined;
+        try {
+            const tx = db.transaction(SETTINGS_STORE, 'readonly');
+            const request = tx.objectStore(SETTINGS_STORE).get(key);
+            return await requestToPromise(request);
+        } catch (error) {
+            console.error(`No se pudo obtener el valor '${key}' del almacén de ajustes.`, error);
+            return undefined;
+        }
+    };
+
+    const loadBirthdayGreeting = async () => {
+        if (!birthdayBannerEl) return;
+        hideBirthdayBanner();
+        if (!isSettingsStoreReady()) return;
+
+        try {
+            const [birthdayData, userNameData] = await Promise.all([
+                fetchSettingsEntry(BIRTHDAY_KEY),
+                fetchSettingsEntry(USER_NAME_KEY)
+            ]);
+
+            const month = typeof birthdayData?.month === 'number' ? birthdayData.month : undefined;
+            const day = typeof birthdayData?.day === 'number' ? birthdayData.day : undefined;
+
+            if (!isTodayBirthday(month, day)) {
+                return;
+            }
+
+            const userName = typeof userNameData?.value === 'string' ? userNameData.value : undefined;
+
+            showBirthdayBanner({
+                heading: formatBirthdayHeading(userName),
+                message: formatBirthdayMessage(userName)
+            });
+        } catch (error) {
+            console.error('No se pudo cargar el mensaje de cumpleaños.', error);
+        }
     };
 
     const showUserNameStatus = (message, type = 'info') => {

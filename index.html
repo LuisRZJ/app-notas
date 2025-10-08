@@ -183,6 +183,24 @@
                 <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Notas</h1>
                 <p class="text-slate-500 mt-2">Un lugar simple para los registros.</p>
                 <p id="user-greeting" class="mt-4 text-xl font-semibold">Hola, Usuario</p>
+                <div id="birthday-banner" class="hidden mt-6" aria-hidden="true">
+                    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 text-white px-6 py-5 shadow-xl border border-white/30">
+                        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                            <span class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-party-popper">
+                                    <path d="M5.8 11 2 22l11-3.8L22 2Z"/>
+                                    <path d="M4 3l7 7"/>
+                                    <path d="M22 2s-5 2.5-7 6-3 5-5 6-6 2-6 2"/>
+                                </svg>
+                            </span>
+                            <div class="text-center sm:text-left">
+                                <p id="birthday-message-heading" class="text-lg font-semibold leading-tight">¡Feliz cumpleaños!</p>
+                                <p id="birthday-message-text" class="mt-1 text-sm font-medium text-white/90">Que hoy sea un día lleno de inspiración y alegría.</p>
+                            </div>
+                        </div>
+                        <div class="pointer-events-none select-none absolute -top-6 -right-2 text-6xl text-white/30">🎉</div>
+                    </div>
+                </div>
             </header>
 
             <div class="mb-8">
@@ -225,6 +243,10 @@
         <a href="historial.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             <span class="text-xs font-medium mt-1">Historial</span>
+        </a>
+        <a href="estadistica.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-3"><path d="M3 3v18h18"/><path d="M13 13h4v5h-4z"/><path d="M6 16h4v2H6z"/><path d="M18 9h4v9h-4z"/></svg>
+            <span class="text-xs font-medium mt-1">Estadísticas</span>
         </a>
         <a href="reflexion.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lamp-desk"><path d="M13 5h7"/><path d="M13 9h4"/><path d="M10 12h8"/><path d="M16 9c0 2.8-1.2 4.7-3 6"/><path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6"/><path d="M8 17v4"/><path d="M6 21h4"/></svg>
