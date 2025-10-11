@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./logo-app.png">
+    <link rel="icon" type="image/png" href="./logo-app.png">
+    <title>Chat IA</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js CDN for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+        }
+        .scrollable-content::-webkit-scrollbar { width: 8px; }
+        .scrollable-content::-webkit-scrollbar-track { background-color: #fff7ed; }
+        .scrollable-content::-webkit-scrollbar-thumb { background-color: #fb923c; border-radius: 10px; border: 2px solid #fff7ed; }
+        .scrollable-content::-webkit-scrollbar-thumb:hover { background-color: #f97316; }
+        
+        /* Estilos de Markdown */
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .markdown-content h1 { font-size: 1.5em; }
+        .markdown-content h2 { font-size: 1.25em; }
+        .markdown-content h3 { font-size: 1.1em; }
+        .markdown-content p { margin-bottom: 0.5rem; }
+        .markdown-content ul, .markdown-content ol { padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .markdown-content ul { list-style-type: disc; }
+        .markdown-content ol { list-style-type: decimal; }
+        .markdown-content code:not(pre code) { background-color: #fed7aa; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
+        .markdown-content pre { 
+            background-color: #ffedd5; 
+            border: 1px solid #fed7aa;
+            padding: 1rem; 
+            border-radius: 0.5rem; 
+            overflow-x: auto; 
+            margin-bottom: 1rem; 
+            position: relative;
+        }
+        .markdown-content pre code { 
+            background-color: transparent; 
+            padding: 0; 
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .markdown-content a { color: #ea580c; text-decoration: underline; }
+        .markdown-content a:hover { color: #c2410c; }
+        .markdown-content strong, .markdown-content b { font-weight: 700; }
+        .hidden { display: none; }
+        body[data-theme="dark"] {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] header,
+        body[data-theme="dark"] .input-section {
+            background-color: #1f2937 !important;
+            border-color: #334155 !important;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] #home-screen,
+        body[data-theme="dark"] #settings-screen,
+        body[data-theme="dark"] #chat-screen {
+            background-color: #0f172a;
+        }
+        body[data-theme="dark"] .scrollable-content {
+            background-color: #111827;
+        }
+        body[data-theme="dark"] .bg-white,
+        body[data-theme="dark"] .bg-orange-50,
+        body[data-theme="dark"] .bg-orange-100,
+        body[data-theme="dark"] .bg-orange-100\/75,
+        body[data-theme="dark"] .bg-orange-50\/50 {
+            background-color: #1f2937 !important;
+            color: #f8fafc;
+        }
+        body[data-theme="dark"] .border-orange-200,
+        body[data-theme="dark"] .border-orange-300 {
+            border-color: #334155 !important;
+        }
+        body[data-theme="dark"] .text-orange-900,
+        body[data-theme="dark"] .text-gray-800,
+        body[data-theme="dark"] .text-gray-700,
+        body[data-theme="dark"] .text-gray-600,
+        body[data-theme="dark"] .text-orange-600 {
+            color: #f8fafc !important;
+        }
+        body[data-theme="dark"] .text-gray-500,
+        body[data-theme="dark"] .text-gray-400,
+        body[data-theme="dark"] .text-orange-500 {
+            color: #cbd5f5 !important;
+        }
+        body[data-theme="dark"] .bg-orange-500 {
+            background-color: #f97316 !important;
+        }
+        body[data-theme="dark"] .bg-red-500 {
+            background-color: #ef4444 !important;
+        }
+        body[data-theme="dark"] #user-input,
+        body[data-theme="dark"] select,
+        body[data-theme="dark"] input,
+        body[data-theme="dark"] textarea {
+            background-color: #1f2937;
+            color: #f8fafc;
+            border-color: #334155;
+        }
+        body[data-theme="dark"] .ai-message .message-bubble {
+            background-color: #1f2937 !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+        }
+        body[data-theme="dark"] .copy-btn {
+            color: #f59e0b !important;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="bg-orange-50 text-gray-800 h-screen overflow-hidden" data-page="chat" data-theme="light">
+
+    <!-- Pantalla de Inicio (Historial) -->
+    <div id="home-screen" class="w-full h-full flex flex-col" role="region" aria-labelledby="home-screen-heading">
+        <header class="bg-white p-4 border-b border-orange-200 flex items-center justify-between shadow-sm shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-gradient-to-tr from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white shrink-0">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12.85,3.62A10,10,0,0,0,8.3,2.85A10,10,0,0,0,3.62,12.85a9.93,9.93,0,0,0,.73,4.53,10,10,0,0,0,14.3,0A10,10,0,0,0,12.85,3.62ZM12,20a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"/><path d="M12,5.25A6.75,6.75,0,1,0,18.75,12,6.75,6.75,0,0,0,12,5.25ZM12,17.25A5.25,5.25,0,1,1,17.25,12,5.25,5.25,0,0,1,12,17.25Z"/><path d="M12,8.75a3.25,3.25,0,1,0,3.25,3.25A3.25,3.25,0,0,0,12,8.75Z"/></svg>
+                </div>
+                <h1 id="home-screen-heading" class="text-xl font-bold text-orange-900">Historial de Chats</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="bg-white text-orange-600 border border-orange-300 hover:bg-orange-100 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7"/><path d="M9 22V12H15V22"/><path d="M12 2V5"/><path d="M21 10V22H3V10"/></svg>
+                    Inicio
+                </a>
+                <button id="go-to-settings-btn" class="text-orange-600 hover:bg-orange-200 p-2 rounded-full transition-colors duration-200" type="button" aria-label="Abrir ajustes">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button id="new-chat-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Nuevo Chat
+                </button>
+            </div>
+        </header>
+        <main id="conversations-list" class="flex-1 p-6 overflow-y-auto space-y-3 bg-orange-50/50 scrollable-content">
+            <!-- La lista de conversaciones se renderizará aquí -->
+        </main>
+    </div>
+    
+    <!-- Pantalla de Ajustes -->
+    <div id="settings-screen" class="hidden w-full h-full flex flex-col" role="region" aria-labelledby="settings-screen-heading">
+        <header class="bg-white p-4 border-b border-orange-200 flex items-center gap-4 shadow-sm shrink-0">
+             <button id="back-from-settings-btn" class="p-2 rounded-full hover:bg-orange-200 transition-colors" type="button" aria-label="Volver al historial">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h1 id="settings-screen-heading" class="text-xl font-bold text-orange-900">Ajustes</h1>
+        </header>
+        <main class="flex-1 p-6 bg-orange-50/50 space-y-6">
+            <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm border border-orange-200">
+                <h2 class="text-lg font-semibold mb-4 text-orange-800">Modelo por Defecto</h2>
+                <p class="text-sm text-gray-600 mb-2">Selecciona el modelo de IA que se usará para iniciar nuevas conversaciones.</p>
+                <div class="relative">
+                    <select id="settings-model-selector" class="bg-white border border-orange-300 text-orange-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 appearance-none pr-8">
+                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Exp</option>
+                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-orange-700">
+                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm border border-orange-200">
+                <h2 class="text-lg font-semibold mb-2 text-orange-800">Gestión de Datos</h2>
+                <div class="text-sm text-gray-700 space-y-2 mb-4">
+                    <p>Conversaciones Guardadas: <strong id="convo-count" class="font-medium text-orange-700">0</strong></p>
+                    <p>Tamaño Total en Disco: <strong id="storage-size" class="font-medium text-orange-700">0 KB</strong></p>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">
+                    Los datos se guardan localmente en tu navegador. No se suben a ningún servidor.
+                </p>
+                <button id="delete-data-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Eliminar Todos los Datos
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Pantalla de Chat -->
+    <div id="chat-screen" class="hidden w-full h-full relative" role="region" aria-labelledby="chat-screen-heading">
+        <header class="header bg-orange-100/75 backdrop-blur-md text-orange-900 p-4 border-b border-orange-200 flex items-center justify-between gap-4 shadow-sm absolute top-0 left-0 right-0 z-10">
+             <div class="flex items-center gap-4">
+                <button id="back-to-home-btn" class="p-2 rounded-full hover:bg-orange-200 transition-colors" type="button" aria-label="Volver al historial de chats">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <div>
+                    <h1 id="chat-screen-heading" class="text-xl font-bold">Chat con Gemini</h1>
+                    <p class="text-sm text-orange-600 font-mono" id="status" role="status" aria-live="polite">Conectado y listo</p>
+                </div>
+            </div>
+        </header>
+
+        <main id="chat-messages" class="chat-container h-full bg-orange-50/50 overflow-y-auto scrollable-content pt-24 pb-24 px-6" role="log" aria-live="polite" aria-label="Mensajes del chat">
+             <div class="space-y-4">
+                <!-- Los mensajes se agregarán aquí dinámicamente -->
+            </div>
+        </main>
+
+        <footer class="input-section p-4 border-t border-orange-200 bg-orange-100/75 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10">
+            <div class="input-container flex items-center gap-4">
+                <input type="text" id="user-input" placeholder="Escribe tu mensaje aquí..." class="flex-1 bg-white text-gray-800 rounded-full px-5 py-3 focus:ring-2 focus:ring-orange-500 focus:outline-none transition-shadow duration-300 border border-orange-200" aria-label="Mensaje para enviar">
+                <button id="send-btn" class="bg-orange-500 hover:bg-orange-600 text-white rounded-full p-3 flex items-center justify-center transition-transform duration-200 active:scale-90 disabled:bg-orange-300 disabled:cursor-not-allowed" type="button" aria-label="Enviar mensaje">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+    
+    <template id="typing-indicator-template">
+        <div class="pb-4">
+             <div class="message ai-message flex flex-col items-start">
+                <div class="message-bubble bg-orange-100 text-orange-800 p-4 rounded-2xl rounded-bl-lg max-w-lg">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                        <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                        <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-text">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm mx-auto">
+            <h3 id="modal-title" class="text-lg font-bold text-red-700">¿Confirmar Eliminación?</h3>
+            <p id="modal-text" class="text-sm text-gray-600 mt-2 mb-4">Esta acción es irreversible.</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300" type="button">Cancelar</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" type="button">Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const THEME_DB_NAME = 'NotesDB';
+        const THEME_DB_VERSION = 6;
+        const THEME_SETTINGS_STORE = 'settings';
+        const THEME_KEY = 'theme';
+        const THEME_DEFAULT = 'light';
+        const THEME_OPTIONS = new Set(['light', 'dark', 'system']);
+        const META_THEME_COLOR_LIGHT = '#2563eb';
+        const META_THEME_COLOR_DARK = '#0f172a';
+        const metaThemeColorEl = document.querySelector('meta[name="theme-color"]');
+        const systemThemeMedia = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        let currentThemePreference = THEME_DEFAULT;
+
+        const sanitizeThemePreference = (value) => THEME_OPTIONS.has(value) ? value : THEME_DEFAULT;
+        const resolveSystemTheme = () => (systemThemeMedia && systemThemeMedia.matches ? 'dark' : 'light');
+
+        const applyTheme = (preference, options = {}) => {
+            const { skipMetaUpdate = false } = options;
+            const sanitizedPreference = sanitizeThemePreference(preference);
+            currentThemePreference = sanitizedPreference;
+            const effectiveTheme = sanitizedPreference === 'system' ? resolveSystemTheme() : sanitizedPreference;
+            if (document.body) {
+                document.body.dataset.themePreference = sanitizedPreference;
+                document.body.dataset.theme = effectiveTheme;
+            }
+            if (document.documentElement) {
+                document.documentElement.style.colorScheme = effectiveTheme === 'dark' ? 'dark' : 'light';
+            }
+            if (!skipMetaUpdate && metaThemeColorEl) {
+                metaThemeColorEl.setAttribute('content', effectiveTheme === 'dark' ? META_THEME_COLOR_DARK : META_THEME_COLOR_LIGHT);
+            }
+            return effectiveTheme;
+        };
+
+        const initializeTheme = () => {
+            applyTheme(currentThemePreference);
+            return new Promise((resolve) => {
+                if (!('indexedDB' in window)) {
+                    resolve();
+                    return;
+                }
+                let resolved = false;
+                const finish = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+                let dbInstance;
+                const request = indexedDB.open(THEME_DB_NAME, THEME_DB_VERSION);
+                request.onerror = () => {
+                    console.error('No se pudo abrir la base de datos para la preferencia de tema.', request.error);
+                    finish();
+                };
+                request.onblocked = () => {
+                    finish();
+                };
+                request.onupgradeneeded = (event) => {
+                    const upgradeDb = event.target.result;
+                    if (!upgradeDb.objectStoreNames.contains(THEME_SETTINGS_STORE)) {
+                        upgradeDb.createObjectStore(THEME_SETTINGS_STORE, { keyPath: 'key' });
+                    }
+                };
+                request.onsuccess = (event) => {
+                    dbInstance = event.target.result;
+                    if (!dbInstance.objectStoreNames.contains(THEME_SETTINGS_STORE)) {
+                        dbInstance.close();
+                        finish();
+                        return;
+                    }
+                    const tx = dbInstance.transaction(THEME_SETTINGS_STORE, 'readonly');
+                    const store = tx.objectStore(THEME_SETTINGS_STORE);
+                    const themeRequest = store.get(THEME_KEY);
+                    themeRequest.onsuccess = () => {
+                        const storedPreference = themeRequest.result?.value;
+                        applyTheme(storedPreference ?? currentThemePreference);
+                    };
+                    themeRequest.onerror = () => {
+                        applyTheme(currentThemePreference);
+                    };
+                    tx.oncomplete = () => {
+                        dbInstance.close();
+                        finish();
+                    };
+                    tx.onerror = () => {
+                        dbInstance.close();
+                        finish();
+                    };
+                };
+            });
+        };
+
+        const handleSystemThemeChange = () => {
+            if (currentThemePreference === 'system') {
+                applyTheme(currentThemePreference);
+            }
+        };
+
+        if (systemThemeMedia) {
+            if (typeof systemThemeMedia.addEventListener === 'function') {
+                systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+            } else if (typeof systemThemeMedia.addListener === 'function') {
+                systemThemeMedia.addListener(handleSystemThemeChange);
+            }
+        }
+
+        const themeInitializationPromise = initializeTheme();
+
+        class GeminiChatApp {
+            constructor() {
+                this.apiKey = 'AIzaSyCD8CoZMmSm9KbpMUSbdqpygzO9NMLekuM';
+                this.conversations = this.loadConversations();
+                this.settings = this.loadSettings();
+                this.currentConversationId = null;
+                this.conversationIdToDelete = null; 
+                this.initializeElements();
+                this.setupEventListeners();
+                this.showScreen('home');
+            }
+
+            // --- Inicialización y Manejo de DOM ---
+            initializeElements() {
+                this.homeScreen = document.getElementById('home-screen');
+                this.chatScreen = document.getElementById('chat-screen');
+                this.settingsScreen = document.getElementById('settings-screen');
+                
+                this.conversationsList = document.getElementById('conversations-list');
+                this.newChatBtn = document.getElementById('new-chat-btn');
+                this.backToHomeBtn = document.getElementById('back-to-home-btn');
+                this.goToSettingsBtn = document.getElementById('go-to-settings-btn');
+                this.backFromSettingsBtn = document.getElementById('back-from-settings-btn');
+                this.deleteDataBtn = document.getElementById('delete-data-btn');
+
+                // Elementos de ajustes
+                this.settingsModelSelector = document.getElementById('settings-model-selector');
+                this.convoCountSpan = document.getElementById('convo-count');
+                this.storageSizeSpan = document.getElementById('storage-size');
+                
+                // Elementos del Modal
+                this.confirmModal = document.getElementById('confirm-modal');
+                this.modalTitle = document.getElementById('modal-title');
+                this.modalText = document.getElementById('modal-text');
+                this.cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+                this.confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+
+                // Elementos del chat
+                this.chatContainer = this.chatScreen.querySelector('.chat-container');
+                this.userInput = document.getElementById('user-input');
+                this.sendBtn = document.getElementById('send-btn');
+                this.typingIndicatorTemplate = document.getElementById('typing-indicator-template');
+                this.status = document.getElementById('status');
+            }
+
+            setupEventListeners() {
+                this.newChatBtn.addEventListener('click', () => this.startNewChat());
+                this.backToHomeBtn.addEventListener('click', () => this.showScreen('home'));
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.userInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                this.userInput.addEventListener('input', () => this.updateSendButtonState());
+
+                this.goToSettingsBtn.addEventListener('click', () => this.showScreen('settings'));
+                this.backFromSettingsBtn.addEventListener('click', () => {
+                    this.saveSettings();
+                    this.showScreen('home');
+                });
+                
+                // Event Listeners del Modal
+                this.deleteDataBtn.addEventListener('click', () => this.showDeleteConfirmation(null));
+                this.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteConfirmation());
+                this.confirmDeleteBtn.addEventListener('click', () => this.handleDelete());
+            }
+            
+            updateSendButtonState() {
+                this.sendBtn.disabled = this.userInput.value.trim() === '';
+            }
+
+            // --- Manejo de Pantallas ---
+            showScreen(screenName) {
+                this.homeScreen.classList.add('hidden');
+                this.chatScreen.classList.add('hidden');
+                this.settingsScreen.classList.add('hidden');
+                
+                if (screenName === 'home') {
+                    this.homeScreen.classList.remove('hidden');
+                    this.renderConversationsList();
+                } else if (screenName === 'chat') {
+                    this.chatScreen.classList.remove('hidden');
+                } else if (screenName === 'settings') {
+                    this.settingsModelSelector.value = this.settings.defaultModel;
+                    this.updateStorageSummary();
+                    this.settingsScreen.classList.remove('hidden');
+                }
+            }
+
+            // --- Lógica del Historial ---
+            renderConversationsList() {
+                this.conversationsList.innerHTML = '';
+                if (this.conversations.length === 0) {
+                    this.conversationsList.innerHTML = `<div class="text-center text-gray-500 mt-8">
+                        <p>No hay conversaciones guardadas.</p>
+                        <p>Haz clic en "Nuevo Chat" para comenzar.</p>
+                    </div>`;
+                    return;
+                }
+
+                const sortedConversations = this.conversations.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
+
+                sortedConversations.forEach(convo => {
+                    const convoElement = document.createElement('div');
+                    convoElement.className = 'bg-white p-4 rounded-lg shadow-sm border border-orange-200 cursor-pointer hover:shadow-md hover:border-orange-400 transition-all flex justify-between items-center';
+                    convoElement.dataset.id = convo.id;
+                    convoElement.innerHTML = `
+                        <div>
+                            <h3 class="font-bold text-orange-800">${convo.title}</h3>
+                            <p class="text-sm text-gray-500">${convo.history.length} mensajes</p>
+                            <p class="text-xs text-gray-400">Última vez: ${new Date(convo.lastUpdated).toLocaleString()}</p>
+                        </div>
+                        <button class="delete-btn text-gray-400 hover:text-red-500 p-2 rounded-full" data-id="${convo.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    `;
+                    convoElement.addEventListener('click', (e) => {
+                        if (!e.target.closest('.delete-btn')) {
+                            this.openConversation(convo.id);
+                        }
+                    });
+                    convoElement.querySelector('.delete-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.showDeleteConfirmation(convo.id);
+                    });
+                    this.conversationsList.appendChild(convoElement);
+                });
+            }
+            
+            startNewChat() {
+                this.currentConversationId = null;
+                this.chatContainer.innerHTML = '<div class="space-y-4"></div>';
+                const modelName = this.settingsModelSelector.options[this.settingsModelSelector.selectedIndex].text;
+                this.status.textContent = `Nuevo chat con ${modelName}`;
+                this.addMessageToChat(`¡Hola! Soy ${modelName}. ¿En qué puedo ayudarte hoy?`, 'ai');
+                this.showScreen('chat');
+                this.userInput.focus();
+                this.updateSendButtonState();
+            }
+
+            openConversation(id) {
+                const conversation = this.conversations.find(c => c.id === id);
+                if (!conversation) return;
+
+                this.currentConversationId = id;
+                this.chatContainer.innerHTML = '<div class="space-y-4"></div>';
+                conversation.history.forEach(turn => this.addMessageToChat(turn.message, turn.sender, true));
+                
+                const modelOption = Array.from(this.settingsModelSelector.options).find(opt => opt.value === conversation.model);
+                const modelName = modelOption ? modelOption.text : conversation.model;
+                this.status.textContent = `Continuando chat con ${modelName}`;
+                this.showScreen('chat');
+                this.updateSendButtonState();
+            }
+
+            // --- Lógica de Eliminación ---
+            showDeleteConfirmation(id = null) {
+                this.conversationIdToDelete = id;
+                if (id) {
+                    this.modalTitle.textContent = '¿Eliminar Conversación?';
+                    this.modalText.textContent = 'Esta acción es irreversible y eliminará esta conversación permanentemente.';
+                } else {
+                    this.modalTitle.textContent = '¿Eliminar Todos los Datos?';
+                    this.modalText.textContent = 'Esta acción es irreversible y eliminará TODAS tus conversaciones y ajustes.';
+                }
+                this.confirmModal.classList.remove('hidden');
+            }
+
+            hideDeleteConfirmation() {
+                this.conversationIdToDelete = null;
+                this.confirmModal.classList.add('hidden');
+            }
+
+            handleDelete() {
+                if (this.conversationIdToDelete) {
+                    // Borrar una sola conversación
+                    this.conversations = this.conversations.filter(c => c.id !== this.conversationIdToDelete);
+                    this.saveConversations();
+                    this.renderConversationsList();
+                } else {
+                    // Borrar todo
+                    localStorage.removeItem('gemini-chat-conversations');
+                    localStorage.removeItem('gemini-chat-settings');
+                    this.conversations = [];
+                    this.settings = this.loadSettings();
+                    this.currentConversationId = null;
+                    this.showScreen('home'); // Vuelve al inicio y re-renderiza
+                }
+                this.hideDeleteConfirmation();
+            }
+
+
+            // --- Lógica del Chat ---
+            async sendMessage() {
+                const message = this.userInput.value.trim();
+                if (!message) return;
+                
+                this.toggleInput(true);
+                this.addMessageToChat(message, 'user');
+                this.userInput.value = '';
+                this.updateSendButtonState(); // Deshabilitar botón inmediatamente
+                this.showTypingIndicator();
+
+                let currentConvo;
+
+                if (this.currentConversationId === null) {
+                    this.currentConversationId = `convo_${Date.now()}`;
+                    currentConvo = {
+                        id: this.currentConversationId,
+                        title: "Nueva Conversación...", // Título provisional
+                        model: this.settings.defaultModel,
+                        history: [{ sender: 'user', message }],
+                        lastUpdated: new Date().toISOString()
+                    };
+                    this.conversations.push(currentConvo);
+                } else {
+                    currentConvo = this.conversations.find(c => c.id === this.currentConversationId);
+                    currentConvo.history.push({ sender: 'user', message });
+                    currentConvo.lastUpdated = new Date().toISOString();
+                }
+
+                try {
+                    const responseText = await this.callGeminiAPI(currentConvo.history, currentConvo.model);
+                    this.hideTypingIndicator();
+                    this.addMessageToChat(responseText, 'ai');
+                    currentConvo.history.push({ sender: 'ai', message: responseText });
+
+                    if (currentConvo.history.length === 2) {
+                        try {
+                            const newTitle = await this.generateConversationTitle(message, responseText);
+                            currentConvo.title = newTitle;
+                        } catch (titleError) {
+                            console.error("Fallo al generar título, usando fallback:", titleError);
+                            currentConvo.title = message.substring(0, 40) + (message.length > 40 ? '...' : '');
+                        }
+                    }
+
+                } catch (error) {
+                    this.hideTypingIndicator();
+                    const errorMessage = `Lo siento, ocurrió un error: ${error.message}.`;
+                    this.addMessageToChat(errorMessage, 'ai');
+                    console.error('Error:', error);
+                } finally {
+                    this.toggleInput(false);
+                    this.saveConversations();
+                }
+            }
+            
+            async generateConversationTitle(userMessage, aiResponse) {
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.apiKey}`;
+                const prompt = `Basado en la siguiente conversación, crea un título corto y descriptivo (máximo 5 palabras). Responde únicamente con el título, sin comillas ni texto introductorio.\n\nUsuario: "${userMessage}"\n\nAsistente: "${aiResponse}"`;
+                
+                const requestBody = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.2, maxOutputTokens: 20 }
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) throw new Error("La llamada a la API para el título falló.");
+
+                const data = await response.json();
+                let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+                if (!title) throw new Error("No se encontró un título válido en la respuesta de la API.");
+                
+                return title.replace(/["*]/g, ''); // Limpiar comillas o asteriscos
+            }
+
+            async callGeminiAPI(history, model) {
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+                
+                const contents = history.map(turn => ({
+                    role: turn.sender === 'user' ? 'user' : 'model',
+                    parts: [{ text: turn.message }]
+                }));
+
+                const requestBody = { contents };
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `Error HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    throw new Error('Respuesta no válida de la API.');
+                }
+                return data.candidates[0].content.parts[0].text;
+            }
+
+            addMessageToChat(message, sender, fromHistory = false) {
+                const contentWrapper = this.chatContainer.querySelector('.space-y-4');
+                if(!contentWrapper) return;
+                
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `message-wrapper flex flex-col w-full ${sender === 'user' ? 'items-end' : 'items-start'}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = `message-bubble p-4 rounded-2xl max-w-lg shadow-md ${
+                    sender === 'user' 
+                    ? 'bg-orange-500 text-white rounded-br-lg' 
+                    : 'bg-orange-100 text-orange-900 rounded-bl-lg markdown-content'
+                }`;
+                
+                if (sender === 'ai') {
+                    bubble.innerHTML = marked.parse(message);
+                    bubble.querySelectorAll('pre').forEach(pre => {
+                        const codeContent = pre.querySelector('code').textContent;
+                        const copyCodeBtn = document.createElement('button');
+                        copyCodeBtn.className = 'absolute top-2 right-2 p-1 bg-orange-200/50 hover:bg-orange-300/50 rounded-md text-orange-700';
+                        
+                        const copyIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                        const checkIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                        
+                        copyCodeBtn.innerHTML = copyIconSVG;
+
+                        copyCodeBtn.addEventListener('click', () => {
+                            const tempTextArea = document.createElement('textarea');
+                            tempTextArea.value = codeContent;
+                            document.body.appendChild(tempTextArea);
+                            tempTextArea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(tempTextArea);
+                            
+                            copyCodeBtn.innerHTML = checkIconSVG;
+                            setTimeout(() => { copyCodeBtn.innerHTML = copyIconSVG; }, 2000);
+                        });
+
+                        pre.appendChild(copyCodeBtn);
+                    });
+                } else {
+                    bubble.textContent = message;
+                }
+
+                messageWrapper.appendChild(bubble);
+                
+                const copyButton = document.createElement('button');
+                const buttonColorClass = sender === 'user' ? 'text-orange-300 hover:text-white' : 'text-orange-400 hover:text-orange-600';
+                copyButton.className = `copy-btn mt-1.5 p-1 rounded-md ${buttonColorClass} transition-colors`;
+                
+                const copyIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                const checkIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+                copyButton.innerHTML = copyIconSVG;
+                copyButton.addEventListener('click', () => {
+                    const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = message;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempTextArea);
+
+                    copyButton.innerHTML = checkIconSVG;
+                    setTimeout(() => {
+                        copyButton.innerHTML = copyIconSVG;
+                    }, 2000);
+                });
+
+                messageWrapper.appendChild(copyButton);
+                
+                if (!fromHistory) {
+                    messageWrapper.classList.add('transform', 'scale-95', 'opacity-50');
+                    setTimeout(() => messageWrapper.classList.remove('scale-95', 'opacity-50'), 50);
+                }
+                
+                contentWrapper.appendChild(messageWrapper);
+                this.scrollToBottom();
+            }
+            
+            showTypingIndicator() {
+                this.hideTypingIndicator(); // Ensure no duplicates
+                const indicator = document.createElement('div');
+                indicator.id = 'typing-indicator-instance';
+                indicator.innerHTML = this.typingIndicatorTemplate.innerHTML;
+                const contentWrapper = this.chatContainer.querySelector('.space-y-4');
+                if (contentWrapper) {
+                    contentWrapper.appendChild(indicator);
+                }
+                this.scrollToBottom();
+            }
+
+            hideTypingIndicator() {
+                const indicator = document.getElementById('typing-indicator-instance');
+                if (indicator) {
+                    indicator.remove();
+                }
+            }
+
+            // --- Utilidades ---
+            loadSettings() {
+                const stored = localStorage.getItem('gemini-chat-settings');
+                const defaults = { defaultModel: 'gemini-2.0-flash-exp' };
+                try {
+                    return stored ? JSON.parse(stored) : defaults;
+                } catch (e) {
+                    return defaults;
+                }
+            }
+
+            saveSettings() {
+                this.settings.defaultModel = this.settingsModelSelector.value;
+                localStorage.setItem('gemini-chat-settings', JSON.stringify(this.settings));
+            }
+
+            loadConversations() {
+                try {
+                    const stored = localStorage.getItem('gemini-chat-conversations');
+                    return stored ? JSON.parse(stored) : [];
+                } catch (e) {
+                    console.error("Error al cargar conversaciones:", e);
+                    return [];
+                }
+            }
+
+            saveConversations() {
+                try {
+                    localStorage.setItem('gemini-chat-conversations', JSON.stringify(this.conversations));
+                } catch (e) {
+                    console.error("Error al guardar conversaciones:", e);
+                }
+            }
+
+            updateStorageSummary() {
+                const convoString = localStorage.getItem('gemini-chat-conversations') || '';
+                const settingsString = localStorage.getItem('gemini-chat-settings') || '';
+                const totalBytes = convoString.length + settingsString.length;
+
+                this.convoCountSpan.textContent = this.conversations.length;
+                this.storageSizeSpan.textContent = this.formatBytes(totalBytes);
+            }
+
+            formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            
+            toggleInput(disabled) {
+                this.userInput.disabled = disabled;
+                if (disabled) {
+                    this.sendBtn.disabled = true;
+                } else {
+                    this.userInput.focus();
+                    this.updateSendButtonState();
+                }
+            }
+
+            scrollToBottom() { 
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            themeInitializationPromise.finally(() => {
+                new GeminiChatApp();
+            });
+        });
+    </script>
+</body>
+</html>
+

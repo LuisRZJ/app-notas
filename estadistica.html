@@ -15,6 +15,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -59,6 +61,42 @@
             background: rgba(255, 255, 255, 0.85);
             border: 1px solid rgba(148, 163, 184, 0.35);
             box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
+        }
+        #monthly-comparison-message,
+        #notes-heatmap-message {
+            min-height: 1.5rem;
+        }
+        #notes-heatmap-grid {
+            min-height: 260px;
+        }
+        .heatmap-cell {
+            border-radius: 0.75rem;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            background: rgba(148, 163, 184, 0.12);
+        }
+        .heatmap-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+        }
+        .heatmap-cell__date {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+        .heatmap-cell__count {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .heatmap-cell__empty {
+            opacity: 0.55;
+            font-weight: 500;
+        }
+        .heatmap-cell__blank {
+            visibility: hidden;
+            pointer-events: none;
         }
         .tag-pill {
             border-radius: 9999px;
@@ -129,6 +167,16 @@
             background: linear-gradient(140deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.88));
             border-color: rgba(148, 163, 184, 0.25);
             box-shadow: 0 28px 48px rgba(2, 6, 23, 0.55);
+        }
+        body[data-theme="dark"] .heatmap-cell {
+            background: rgba(59, 130, 246, 0.12);
+            color: #e2e8f0;
+        }
+        body[data-theme="dark"] .heatmap-cell:hover {
+            box-shadow: 0 12px 22px rgba(8, 47, 73, 0.35);
+        }
+        body[data-theme="dark"] #notes-heatmap-legend {
+            color: #94a3b8 !important;
         }
         body[data-theme="dark"] .tag-pill {
             background: rgba(59, 130, 246, 0.22);
@@ -366,35 +414,65 @@
             <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
                 <div>
                     <h2 id="notes-timeline-heading" class="text-2xl font-semibold text-slate-900">Cronología de notas</h2>
-                    <p class="text-sm text-slate-500">Vista agrupada por periodos para futuras visualizaciones.</p>
+                    <p class="text-sm text-slate-500">Análisis comparativo y distribución diaria de tus notas.</p>
                 </div>
-                <span class="text-xs font-medium text-slate-400">Planificado para fase de análisis avanzado</span>
+                <span class="text-xs font-medium text-slate-400">Datos basados en tu historial registrado</span>
             </div>
-            <div class="detail-card p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="notes-timeline-grid">
-                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-line-chart mb-3">
-                            <path d="M3 3v18h18"/>
-                            <path d="m19 9-5 5-4-4-3 3"/>
-                        </svg>
-                        <p class="text-sm font-medium">Aquí se mostrarán gráficas temporales próximamente.</p>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6" id="notes-timeline-grid">
+                <article class="detail-card p-6" id="monthly-comparison-card">
+                    <header class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-horizontal text-blue-600">
+                                <path d="M3 3v18h18"/>
+                                <path d="M7 5h12"/>
+                                <path d="M7 9h8"/>
+                                <path d="M7 13h4"/>
+                                <path d="M7 17h10"/>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-slate-900">Notas por mes</h3>
+                        </div>
+                    </header>
+                    <p class="text-sm text-slate-500 mb-4">Compara la actividad mensual entre el año actual y el anterior.</p>
+                    <div class="relative">
+                        <canvas id="monthly-comparison-chart" class="w-full h-[320px]" role="img" aria-label="Comparación de notas mensuales"></canvas>
+                        <div id="monthly-comparison-message" class="mt-4 text-sm font-medium text-center text-slate-500 hidden"></div>
                     </div>
-                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up mb-3">
-                            <path d="M3 17h2l4-4 4 4 8-8"/>
-                            <path d="M14 7h7v7"/>
-                        </svg>
-                        <p class="text-sm font-medium">Comparativas mensuales y semestrales.</p>
-                    </div>
-                    <div class="border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center text-slate-400 py-10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-presentation mb-3">
-                            <path d="M2 3h20"/>
-                            <path d="M3 3v13a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V3"/>
-                            <path d="M7 16l4-4 3 3 4-5"/>
-                        </svg>
-                        <p class="text-sm font-medium">Paneles interactivos de productividad futura.</p>
-                    </div>
-                </div>
+                </article>
+
+                <article class="detail-card p-6" id="notes-heatmap-card">
+                    <header class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-heart text-blue-600">
+                                <path d="M21 7h-6"/>
+                                <path d="M11 7H3"/>
+                                <path d="M21 3h-6"/>
+                                <path d="M11 3H3"/>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16"/>
+                                <path d="m16 19-2-2a2.828 2.828 0 0 1 4-4l.586.586"/>
+                                <path d="M21 11.586 16.586 16"/>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-slate-900">Mapa de calor diario</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="notes-heatmap-prev" class="flex items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors w-9 h-9" aria-label="Mes anterior">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left">
+                                    <path d="m15 18-6-6 6-6"/>
+                                </svg>
+                            </button>
+                            <span id="notes-heatmap-month-label" class="text-sm font-semibold text-slate-600"></span>
+                            <button type="button" id="notes-heatmap-next" class="flex items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors w-9 h-9" aria-label="Mes siguiente">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right">
+                                    <path d="m9 18 6-6-6-6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </header>
+                    <p class="text-sm text-slate-500 mb-4">Identifica los días con mayor cantidad de notas y navega por tus meses registrados.</p>
+                    <div id="notes-heatmap-message" class="text-sm font-medium text-center text-slate-500 hidden"></div>
+                    <div class="grid grid-cols-7 gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3" id="notes-heatmap-weekdays" aria-hidden="true"></div>
+                    <div id="notes-heatmap-grid" class="grid grid-cols-7 gap-2" aria-live="polite" aria-label="Mapa de calor de notas"></div>
+                    <p class="text-xs text-slate-400 mt-4" id="notes-heatmap-legend">La intensidad del color representa la proporción de notas registradas por día.</p>
+                </article>
             </div>
         </section>
     </div>
@@ -471,6 +549,21 @@
             const tagFrequencyListEl = document.getElementById('tag-frequency-list');
             const tagFrequencyEmptyEl = document.getElementById('tag-frequency-empty');
             const tagFrequencyTemplate = document.getElementById('tag-frequency-template');
+            const monthlyComparisonCanvas = document.getElementById('monthly-comparison-chart');
+            const monthlyComparisonMessageEl = document.getElementById('monthly-comparison-message');
+            const notesHeatmapWeekdaysEl = document.getElementById('notes-heatmap-weekdays');
+            const notesHeatmapGridEl = document.getElementById('notes-heatmap-grid');
+            const notesHeatmapPrevBtn = document.getElementById('notes-heatmap-prev');
+            const notesHeatmapNextBtn = document.getElementById('notes-heatmap-next');
+            const notesHeatmapMonthLabelEl = document.getElementById('notes-heatmap-month-label');
+            const notesHeatmapMessageEl = document.getElementById('notes-heatmap-message');
+            const notesHeatmapLegendEl = document.getElementById('notes-heatmap-legend');
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const weekdayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            let cachedNotes = [];
+            let monthlyComparisonChart = null;
+            let heatmapReferenceDate = null;
+            let refreshVisualizations = () => {};
 
             const DB_NAME = 'NotesDB';
             const DB_VERSION = 6;
@@ -487,6 +580,8 @@
 
             const defaultNotesEmptyText = notesListEmptyEl?.textContent?.trim() || 'Sin datos disponibles';
             const defaultTagEmptyText = tagFrequencyEmptyEl?.textContent?.trim() || 'Sin etiquetas registradas';
+            const defaultMonthlyMessage = monthlyComparisonMessageEl?.textContent?.trim() || 'Sin datos suficientes para generar el gráfico de comparación.';
+            const defaultHeatmapMessage = notesHeatmapMessageEl?.textContent?.trim() || 'Sin datos registrados para este mes.';
 
             const getCurrentTheme = () => document.body?.dataset?.theme || 'light';
 
@@ -623,6 +718,9 @@
                 document.querySelectorAll('[data-dynamic-tag-bar]').forEach((bar) => {
                     applyTagBarStyles(bar, bar.dataset.tagColor || '');
                 });
+                if (typeof refreshVisualizations === 'function') {
+                    refreshVisualizations('theme-update');
+                }
             };
 
             const applyDynamicCardTextColor = (element) => {
@@ -652,6 +750,87 @@
             const toggleHidden = (el, hidden) => {
                 if (!el) return;
                 el.classList.toggle('hidden', hidden);
+            };
+
+            const showStatusMessage = (element, message, variant = 'info') => {
+                if (!element) return;
+                setText(element, message);
+                element.classList.remove('hidden');
+                if (variant === 'error') {
+                    element.classList.add('text-red-500');
+                    element.classList.remove('text-slate-500');
+                } else {
+                    element.classList.remove('text-red-500');
+                    element.classList.add('text-slate-500');
+                }
+            };
+
+            const hideStatusMessage = (element) => {
+                if (!element) return;
+                element.classList.add('hidden');
+                element.classList.remove('text-red-500');
+                element.classList.add('text-slate-500');
+                setText(element, '');
+            };
+
+            const getStartOfMonth = (date) => {
+                const reference = date instanceof Date && !Number.isNaN(date.getTime()) ? new Date(date) : new Date();
+                return new Date(reference.getFullYear(), reference.getMonth(), 1);
+            };
+
+            const formatMonthYearLabel = (date) => {
+                const reference = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+                return `${monthNames[reference.getMonth()]} ${reference.getFullYear()}`;
+            };
+
+            const ensureHeatmapWeekdayHeader = () => {
+                if (!notesHeatmapWeekdaysEl || !Array.isArray(weekdayLabels)) return;
+                if (notesHeatmapWeekdaysEl.dataset.rendered === 'true') return;
+                notesHeatmapWeekdaysEl.innerHTML = '';
+                weekdayLabels.forEach((label) => {
+                    const span = document.createElement('span');
+                    span.textContent = label;
+                    notesHeatmapWeekdaysEl.appendChild(span);
+                });
+                notesHeatmapWeekdaysEl.dataset.rendered = 'true';
+            };
+
+            const describeNotesCount = (count) => {
+                if (!Number.isFinite(count)) return '0 notas';
+                const rounded = Math.max(0, Math.trunc(count));
+                return `${rounded.toLocaleString('es-ES')} ${rounded === 1 ? 'nota' : 'notas'}`;
+            };
+
+            const getHeatmapIntensityColor = (count, maxCount) => {
+                const theme = getCurrentTheme();
+                if (!Number.isFinite(maxCount) || maxCount <= 0 || !Number.isFinite(count) || count <= 0) {
+                    return theme === 'dark' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(148, 163, 184, 0.12)';
+                }
+                const normalizedCount = Math.min(1, Math.max(0, count / maxCount));
+                const baseHex = theme === 'dark' ? '#60a5fa' : '#2563eb';
+                const baseRgb = hexToRgb(baseHex);
+                if (!baseRgb) {
+                    return theme === 'dark' ? 'rgba(59, 130, 246, 0.45)' : 'rgba(37, 99, 235, 0.35)';
+                }
+                const minAlpha = theme === 'dark' ? 0.28 : 0.2;
+                const maxAlpha = theme === 'dark' ? 0.82 : 0.72;
+                const alpha = minAlpha + (maxAlpha - minAlpha) * normalizedCount;
+                return `rgba(${baseRgb.r}, ${baseRgb.g}, ${baseRgb.b}, ${alpha.toFixed(3)})`;
+            };
+
+            const getHeatmapTextColor = (count, maxCount) => {
+                const theme = getCurrentTheme();
+                if (!Number.isFinite(maxCount) || maxCount <= 0 || !Number.isFinite(count) || count <= 0) {
+                    return theme === 'dark' ? '#94a3b8' : '#475569';
+                }
+                const normalizedCount = Math.min(1, Math.max(0, count / maxCount));
+                if (normalizedCount >= 0.7) {
+                    return '#f8fafc';
+                }
+                if (normalizedCount >= 0.4) {
+                    return theme === 'dark' ? '#f1f5f9' : '#0f172a';
+                }
+                return theme === 'dark' ? '#cbd5f5' : '#1e293b';
             };
 
             const formatNumber = (value, options = {}) => {
@@ -718,6 +897,11 @@
                 toggleHidden(tagFrequencyEmptyEl, false);
                 setText(notesListEmptyEl, defaultNotesEmptyText);
                 setText(tagFrequencyEmptyEl, defaultTagEmptyText);
+                cachedNotes = [];
+                heatmapReferenceDate = getStartOfMonth(new Date());
+                if (typeof refreshVisualizations === 'function') {
+                    refreshVisualizations('empty-state', []);
+                }
             };
 
             const renderNotesList = (notes, tagsMap) => {
@@ -925,8 +1109,283 @@
                 renderNotesList(notes, tagsMap);
                 renderTagFrequency(notes, tagsMap);
                 applyDynamicThemeStyles();
+                cachedNotes = Array.isArray(notes) ? notes : [];
+                const latestNoteDate = new Date(sortedByDate[sortedByDate.length - 1].id);
+                heatmapReferenceDate = Number.isNaN(latestNoteDate.getTime()) ? getStartOfMonth(new Date()) : getStartOfMonth(latestNoteDate);
+                refreshVisualizations('data-update', cachedNotes);
             };
 
+            const computeMonthlyCounts = (notes) => {
+                const result = {
+                    currentYear: Array(12).fill(0),
+                    previousYear: Array(12).fill(0),
+                    currentYearValue: new Date().getFullYear(),
+                    previousYearValue: new Date().getFullYear() - 1
+                };
+                if (!Array.isArray(notes)) return result;
+                notes.forEach((note) => {
+                    if (typeof note?.id !== 'number') return;
+                    const date = new Date(note.id);
+                    if (Number.isNaN(date.getTime())) return;
+                    const year = date.getFullYear();
+                    const month = date.getMonth();
+                    if (year === result.currentYearValue) {
+                        result.currentYear[month] += 1;
+                    } else if (year === result.previousYearValue) {
+                        result.previousYear[month] += 1;
+                    }
+                });
+                return result;
+            };
+
+            const getMonthlyChartColors = () => {
+                const theme = getCurrentTheme();
+                return theme === 'dark'
+                    ? {
+                        current: 'rgba(96, 165, 250, 0.75)',
+                        currentBorder: 'rgba(96, 165, 250, 1)',
+                        previous: 'rgba(147, 197, 253, 0.4)',
+                        previousBorder: 'rgba(147, 197, 253, 1)',
+                        grid: 'rgba(148, 163, 184, 0.35)',
+                        ticks: '#cbd5f5'
+                    }
+                    : {
+                        current: 'rgba(37, 99, 235, 0.75)',
+                        currentBorder: 'rgba(37, 99, 235, 1)',
+                        previous: 'rgba(148, 163, 184, 0.35)',
+                        previousBorder: 'rgba(148, 163, 184, 1)',
+                        grid: 'rgba(148, 163, 184, 0.35)',
+                        ticks: '#475569'
+                    };
+            };
+
+            const renderMonthlyComparisonChart = (notes) => {
+                if (!monthlyComparisonCanvas || typeof Chart !== 'function') return;
+                hideStatusMessage(monthlyComparisonMessageEl);
+                const data = computeMonthlyCounts(notes);
+                const totalCurrent = data.currentYear.reduce((acc, value) => acc + value, 0);
+                const totalPrevious = data.previousYear.reduce((acc, value) => acc + value, 0);
+                const colors = getMonthlyChartColors();
+
+                if (totalCurrent === 0 && totalPrevious === 0) {
+                    showStatusMessage(monthlyComparisonMessageEl, defaultMonthlyMessage, 'info');
+                    if (monthlyComparisonChart) {
+                        monthlyComparisonChart.destroy();
+                        monthlyComparisonChart = null;
+                    }
+                    return;
+                }
+
+                const config = {
+                    type: 'bar',
+                    data: {
+                        labels: monthNames,
+                        datasets: [
+                            {
+                                label: `${data.currentYearValue}`,
+                                data: data.currentYear,
+                                backgroundColor: colors.current,
+                                borderColor: colors.currentBorder,
+                                borderWidth: 1.5,
+                                borderRadius: 6,
+                                maxBarThickness: 32
+                            },
+                            {
+                                label: `${data.previousYearValue}`,
+                                data: data.previousYear,
+                                backgroundColor: colors.previous,
+                                borderColor: colors.previousBorder,
+                                borderWidth: 1.5,
+                                borderRadius: 6,
+                                maxBarThickness: 32
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        scales: {
+                            x: {
+                                stacked: false,
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: colors.ticks,
+                                    font: {
+                                        family: 'Inter'
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: colors.grid,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: colors.ticks,
+                                    precision: 0,
+                                    font: {
+                                        family: 'Inter'
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: colors.ticks,
+                                    font: {
+                                        family: 'Inter',
+                                        weight: '600'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const value = context.parsed.y;
+                                        return `${context.dataset.label}: ${value.toLocaleString('es-ES')} ${value === 1 ? 'nota' : 'notas'}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                try {
+                    if (monthlyComparisonChart) {
+                        monthlyComparisonChart.destroy();
+                    }
+                    monthlyComparisonChart = new Chart(monthlyComparisonCanvas.getContext('2d'), config);
+                } catch (error) {
+                    console.error('No fue posible renderizar el gráfico mensual.', error);
+                    showStatusMessage(monthlyComparisonMessageEl, 'Ocurrió un error al crear el gráfico mensual.', 'error');
+                }
+            };
+
+            const computeHeatmapData = (notes, referenceDate) => {
+                const startDate = getStartOfMonth(referenceDate);
+                const year = startDate.getFullYear();
+                const month = startDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const countsPerDay = Array(daysInMonth).fill(0);
+                if (Array.isArray(notes)) {
+                    notes.forEach((note) => {
+                        if (typeof note?.id !== 'number') return;
+                        const date = new Date(note.id);
+                        if (Number.isNaN(date.getTime())) return;
+                        if (date.getFullYear() === year && date.getMonth() === month) {
+                            const dayIndex = date.getDate() - 1;
+                            if (dayIndex >= 0 && dayIndex < countsPerDay.length) {
+                                countsPerDay[dayIndex] += 1;
+                            }
+                        }
+                    });
+                }
+                return {
+                    startDate,
+                    year,
+                    month,
+                    daysInMonth,
+                    countsPerDay,
+                    maxCount: Math.max(...countsPerDay, 0)
+                };
+            };
+
+            const renderNotesHeatmap = (notes, referenceDate) => {
+                if (!notesHeatmapGridEl) return;
+                hideStatusMessage(notesHeatmapMessageEl);
+                ensureHeatmapWeekdayHeader();
+                const heatmapData = computeHeatmapData(notes, referenceDate);
+                if (!Array.isArray(heatmapData.countsPerDay) || heatmapData.countsPerDay.length === 0) {
+                    showStatusMessage(notesHeatmapMessageEl, defaultHeatmapMessage, 'info');
+                    notesHeatmapGridEl.innerHTML = '';
+                    return;
+                }
+
+                const { daysInMonth, countsPerDay, maxCount, startDate } = heatmapData;
+                notesHeatmapGridEl.innerHTML = '';
+                setText(notesHeatmapMonthLabelEl, formatMonthYearLabel(startDate));
+                const firstDayIndex = (startDate.getDay() + 6) % 7; // convertir domingo=0 a lunes=0
+
+                for (let i = 0; i < firstDayIndex; i += 1) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'heatmap-cell heatmap-cell__blank';
+                    notesHeatmapGridEl.appendChild(placeholder);
+                }
+
+                countsPerDay.forEach((count, index) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'heatmap-cell';
+                    const dayNumber = index + 1;
+                    const intensity = getHeatmapIntensityColor(count, maxCount);
+                    const textColor = getHeatmapTextColor(count, maxCount);
+                    cell.style.backgroundColor = intensity;
+                    cell.style.color = textColor;
+
+                    const dateLabel = document.createElement('span');
+                    dateLabel.className = 'heatmap-cell__date';
+                    dateLabel.textContent = dayNumber.toString();
+
+                    const countLabel = document.createElement('span');
+                    countLabel.className = 'heatmap-cell__count';
+                    if (count <= 0) {
+                        countLabel.textContent = '-';
+                        countLabel.classList.add('heatmap-cell__empty');
+                    } else {
+                        countLabel.textContent = count.toLocaleString('es-ES');
+                    }
+
+                    cell.appendChild(dateLabel);
+                    cell.appendChild(countLabel);
+                    cell.title = `${dayNumber} ${monthNames[startDate.getMonth()]} ${startDate.getFullYear()} · ${describeNotesCount(count)}`;
+                    notesHeatmapGridEl.appendChild(cell);
+                });
+
+                if (maxCount <= 0) {
+                    showStatusMessage(notesHeatmapMessageEl, 'No hay notas registradas en este mes.', 'info');
+                }
+            };
+
+            refreshVisualizations = (reason = '', notes = cachedNotes) => {
+                if (!Array.isArray(notes)) notes = cachedNotes;
+                try {
+                    renderMonthlyComparisonChart(notes);
+                } catch (error) {
+                    console.error('Error al actualizar el gráfico mensual.', error);
+                    showStatusMessage(monthlyComparisonMessageEl, 'No fue posible actualizar el gráfico mensual.', 'error');
+                }
+
+                try {
+                    const reference = heatmapReferenceDate instanceof Date ? heatmapReferenceDate : new Date();
+                    renderNotesHeatmap(notes, reference);
+                } catch (error) {
+                    console.error('Error al actualizar el mapa de calor.', error);
+                    showStatusMessage(notesHeatmapMessageEl, 'No fue posible actualizar el mapa de calor.', 'error');
+                }
+            };
+
+            const handleMonthNavigation = (delta) => {
+                const baseDate = heatmapReferenceDate instanceof Date && !Number.isNaN(heatmapReferenceDate.getTime())
+                    ? new Date(heatmapReferenceDate)
+                    : getStartOfMonth(new Date());
+                baseDate.setMonth(baseDate.getMonth() + delta);
+                heatmapReferenceDate = getStartOfMonth(baseDate);
+                refreshVisualizations('month-navigation');
+            };
+
+            if (notesHeatmapPrevBtn) {
+                notesHeatmapPrevBtn.addEventListener('click', () => handleMonthNavigation(-1));
+            }
+            if (notesHeatmapNextBtn) {
+                notesHeatmapNextBtn.addEventListener('click', () => handleMonthNavigation(1));
+            }
             const loadStats = (db) => {
                 try {
                     const transaction = db.transaction([NOTES_STORE, TAGS_STORE], 'readonly');
