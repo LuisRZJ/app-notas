@@ -60,6 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveUserNameBtn = document.getElementById('save-user-name-btn');
     const clearUserNameBtn = document.getElementById('clear-user-name-btn');
     const userNameStatusEl = document.getElementById('user-name-status');
+    const discordWebhookInput = document.getElementById('discord-webhook-input');
+    const saveWebhookBtn = document.getElementById('save-webhook-btn');
+    const clearWebhookBtn = document.getElementById('clear-webhook-btn');
+    const webhookStatusEl = document.getElementById('webhook-status');
     const themeSelect = document.getElementById('theme-select');
     const metaThemeColorEl = document.querySelector('meta[name="theme-color"]');
     const rootElement = document.documentElement;
@@ -67,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const importNotesBtn = document.getElementById('import-notes-btn');
     const importFileInput = document.getElementById('import-file-input');
     const exportNotesBtn = document.getElementById('export-notes-btn');
+    const exportDiscordBtn = document.getElementById('export-discord-btn');
     const clearAllDataBtn = document.getElementById('clear-all-data-btn');
     const newTagInput = document.getElementById('new-tag-input');
     const newTagColorInput = document.getElementById('new-tag-color');
@@ -146,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SETTINGS_STORE = 'settings';
     const BIRTHDAY_KEY = 'birthday';
     const USER_NAME_KEY = 'userName';
+    const WEBHOOK_URL_KEY = 'discordWebhookUrl';
     const THEME_KEY = 'theme';
     const DEFAULT_THEME = 'light';
     const THEME_OPTIONS = new Set(['light', 'dark', 'system']);
@@ -159,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let storageChart = null;
     let birthdayStatusTimeout = null;
     let userNameStatusTimeout = null;
+    let webhookStatusTimeout = null;
     let currentThemePreference = DEFAULT_THEME;
     let pendingThemePreference = null;
     let historySearchTerm = '';
@@ -416,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderTags();
                 loadBirthday();
                 loadUserName();
+                loadWebhookUrl();
                 loadUserNameGreeting();
                 break;
             default:
@@ -732,6 +740,90 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         tx.onerror = () => {
             showUserNameStatus('No se pudo eliminar el nombre.', 'error');
+        };
+    };
+
+    const showWebhookStatus = (message, type = 'info') => {
+        if (!webhookStatusEl) return;
+        webhookStatusEl.textContent = message;
+        webhookStatusEl.classList.remove('text-green-600', 'text-red-600');
+        if (type === 'success') {
+            webhookStatusEl.classList.add('text-green-600');
+        } else if (type === 'error') {
+            webhookStatusEl.classList.add('text-red-600');
+        }
+        if (webhookStatusTimeout) {
+            clearTimeout(webhookStatusTimeout);
+        }
+        webhookStatusTimeout = setTimeout(() => {
+            if (webhookStatusEl) {
+                webhookStatusEl.textContent = '';
+                webhookStatusEl.classList.remove('text-green-600', 'text-red-600');
+            }
+        }, 4000);
+    };
+
+    const loadWebhookUrl = () => {
+        if (!db || !discordWebhookInput) return;
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        tx.objectStore(SETTINGS_STORE).get(WEBHOOK_URL_KEY).onsuccess = (event) => {
+            const storedValue = event.target.result?.value;
+            if (typeof storedValue === 'string') {
+                discordWebhookInput.value = storedValue;
+                showWebhookStatus('Webhook cargado correctamente.', 'success');
+            } else {
+                discordWebhookInput.value = '';
+            }
+        };
+    };
+
+    const saveWebhookUrl = () => {
+        if (!db || !discordWebhookInput) {
+            showWebhookStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showWebhookStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const url = discordWebhookInput.value.trim();
+        if (!url) {
+            showWebhookStatus('Escribe una URL antes de guardarla.', 'error');
+            return;
+        }
+        if (!url.startsWith('https://discord.com/api/webhooks/')) {
+             showWebhookStatus('La URL no parece ser un Webhook de Discord válido.', 'error');
+             return;
+        }
+
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).put({ key: WEBHOOK_URL_KEY, value: url });
+        tx.oncomplete = () => {
+            showWebhookStatus('Webhook guardado correctamente.', 'success');
+        };
+        tx.onerror = () => {
+            showWebhookStatus('No se pudo guardar el Webhook.', 'error');
+        };
+    };
+
+    const clearWebhookUrl = () => {
+        if (!db || !discordWebhookInput) {
+            showWebhookStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            showWebhookStatus('El almacén de ajustes no está disponible.', 'error');
+            return;
+        }
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        tx.objectStore(SETTINGS_STORE).delete(WEBHOOK_URL_KEY);
+        tx.oncomplete = () => {
+            discordWebhookInput.value = '';
+            showWebhookStatus('Webhook eliminado.', 'success');
+        };
+        tx.onerror = () => {
+            showWebhookStatus('No se pudo eliminar el Webhook.', 'error');
         };
     };
 
@@ -1583,16 +1675,19 @@ document.addEventListener('DOMContentLoaded', () => {
             let themePreference = null;
             let storedUserName = null;
             let storedBirthday = null;
+            let storedWebhookUrl = null;
 
             if (hasSettingsStore) {
                 const settingsStore = tx.objectStore(SETTINGS_STORE);
-                const [themeEntry, userNameEntry, birthdayEntry] = await Promise.all([
+                const [themeEntry, userNameEntry, birthdayEntry, webhookEntry] = await Promise.all([
                     requestToPromise(settingsStore.get(THEME_KEY)),
                     requestToPromise(settingsStore.get(USER_NAME_KEY)),
-                    requestToPromise(settingsStore.get(BIRTHDAY_KEY))
+                    requestToPromise(settingsStore.get(BIRTHDAY_KEY)),
+                    requestToPromise(settingsStore.get(WEBHOOK_URL_KEY))
                 ]);
                 themePreference = typeof themeEntry?.value === 'string' ? sanitizeThemePreference(themeEntry.value) : null;
                 storedUserName = typeof userNameEntry?.value === 'string' ? userNameEntry.value : null;
+                storedWebhookUrl = typeof webhookEntry?.value === 'string' ? webhookEntry.value : null;
                 if (birthdayEntry && typeof birthdayEntry.month === 'number' && typeof birthdayEntry.day === 'number') {
                     storedBirthday = { month: birthdayEntry.month, day: birthdayEntry.day };
                 }
@@ -1610,7 +1705,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 settings: {
                     theme: themePreference,
                     userName: storedUserName,
-                    birthday: storedBirthday
+                    birthday: storedBirthday,
+                    discordWebhookUrl: storedWebhookUrl
                 }
             };
 
@@ -1623,6 +1719,110 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('No se pudo exportar los datos.', error);
             showUserNameStatus('No se pudo exportar los datos.', 'error');
+        }
+    };
+
+    const exportDataToDiscord = async () => {
+        if (!db) {
+            showUserNameStatus('La base de datos aún no está lista.', 'error');
+            return;
+        }
+        
+        // Cambiar texto del botón para feedback visual
+        const originalBtnContent = exportDiscordBtn.innerHTML;
+        exportDiscordBtn.disabled = true;
+        exportDiscordBtn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...';
+
+        try {
+            const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
+            const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+            const tx = db.transaction(stores, 'readonly');
+            const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
+            const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
+
+            let themePreference = null;
+            let storedUserName = null;
+            let storedBirthday = null;
+            let storedWebhookUrl = null;
+
+            if (hasSettingsStore) {
+                const settingsStore = tx.objectStore(SETTINGS_STORE);
+                const [themeEntry, userNameEntry, birthdayEntry, webhookEntry] = await Promise.all([
+                    requestToPromise(settingsStore.get(THEME_KEY)),
+                    requestToPromise(settingsStore.get(USER_NAME_KEY)),
+                    requestToPromise(settingsStore.get(BIRTHDAY_KEY)),
+                    requestToPromise(settingsStore.get(WEBHOOK_URL_KEY))
+                ]);
+                themePreference = typeof themeEntry?.value === 'string' ? sanitizeThemePreference(themeEntry.value) : null;
+                storedUserName = typeof userNameEntry?.value === 'string' ? userNameEntry.value : null;
+                storedWebhookUrl = typeof webhookEntry?.value === 'string' ? webhookEntry.value : null;
+                if (birthdayEntry && typeof birthdayEntry.month === 'number' && typeof birthdayEntry.day === 'number') {
+                    storedBirthday = { month: birthdayEntry.month, day: birthdayEntry.day };
+                }
+            }
+
+            const [notes, tags] = await Promise.all([notesPromise, tagsPromise]);
+
+            if (!storedWebhookUrl) {
+                throw new Error('No se ha configurado una URL de Webhook. Ve a la sección de Integraciones.');
+            }
+
+            const exportObj = {
+                meta: {
+                    version: 1,
+                    exportedAt: new Date().toISOString()
+                },
+                notes: Array.isArray(notes) ? notes : [],
+                tags: Array.isArray(tags) ? tags : [],
+                settings: {
+                    theme: themePreference,
+                    userName: storedUserName,
+                    birthday: storedBirthday,
+                    discordWebhookUrl: storedWebhookUrl
+                }
+            };
+
+            const jsonString = JSON.stringify(exportObj, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const file = new File([blob], `notas-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
+
+            const formData = new FormData();
+            
+            // Payload JSON para el mensaje embed
+            const payloadJson = {
+                username: "Notas App Backup",
+                avatar_url: "https://cdn-icons-png.flaticon.com/512/2965/2965358.png",
+                embeds: [{
+                    title: "📦 Copia de Seguridad de Notas",
+                    description: `Se ha generado una nueva copia de seguridad.\n\n**Detalles:**\n📝 Notas: ${notes.length}\n🏷️ Etiquetas: ${tags.length}\n📅 Fecha: ${new Date().toLocaleDateString()}`,
+                    color: 5793266, // Verde
+                    footer: {
+                        text: "Generado automáticamente desde la App de Notas"
+                    },
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            formData.append('payload_json', JSON.stringify(payloadJson));
+            formData.append('file', file);
+
+            const response = await fetch(storedWebhookUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                showUserNameStatus('Copia de seguridad enviada a Discord correctamente.', 'success');
+            } else {
+                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+            }
+
+        } catch (error) {
+            console.error('No se pudo enviar a Discord.', error);
+            showUserNameStatus(error.message || 'No se pudo enviar a Discord.', 'error');
+        } finally {
+            exportDiscordBtn.disabled = false;
+            exportDiscordBtn.innerHTML = originalBtnContent;
         }
     };
 
@@ -1644,6 +1844,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sanitizedSettings = {
             theme: typeof rawSettings.theme === 'string' ? sanitizeThemePreference(rawSettings.theme) : null,
             userName: typeof rawSettings.userName === 'string' && rawSettings.userName.trim() ? rawSettings.userName.trim() : null,
+            discordWebhookUrl: typeof rawSettings.discordWebhookUrl === 'string' ? rawSettings.discordWebhookUrl : null,
             birthday: null
         };
 
@@ -1691,6 +1892,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (sanitizedSettings.birthday) {
                 writePromises.push(requestToPromise(settingsStore.put({ key: BIRTHDAY_KEY, month: sanitizedSettings.birthday.month, day: sanitizedSettings.birthday.day })));
+            }
+            if (sanitizedSettings.discordWebhookUrl) {
+                writePromises.push(requestToPromise(settingsStore.put({ key: WEBHOOK_URL_KEY, value: sanitizedSettings.discordWebhookUrl })));
             }
         }
 
@@ -1779,6 +1983,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearBirthdayBtn) clearBirthdayBtn.addEventListener('click', clearBirthday);
     if (saveUserNameBtn) saveUserNameBtn.addEventListener('click', saveUserName);
     if (clearUserNameBtn) clearUserNameBtn.addEventListener('click', clearUserName);
+    if (saveWebhookBtn) saveWebhookBtn.addEventListener('click', saveWebhookUrl);
+    if (clearWebhookBtn) clearWebhookBtn.addEventListener('click', clearWebhookUrl);
+    if (exportDiscordBtn) exportDiscordBtn.addEventListener('click', exportDataToDiscord);
     if (birthdayMonthSelect) birthdayMonthSelect.addEventListener('change', applyBirthdayLimits);
     if (birthdayMonthSelect) applyBirthdayLimits();
     if (toggleDateTimeBtn) toggleDateTimeBtn.addEventListener('click', () => customDateTimeContainer.classList.toggle('hidden'));

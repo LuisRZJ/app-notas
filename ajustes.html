@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,19 +22,24 @@
             font-family: 'Inter', sans-serif;
             overscroll-behavior-y: contain;
         }
+
         ::-webkit-scrollbar {
             width: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #94a3b8;
             border-radius: 10px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
+
         .color-picker-wrapper {
             position: relative;
             width: 40px;
@@ -43,6 +49,7 @@
             cursor: pointer;
             flex-shrink: 0;
         }
+
         .color-picker-wrapper input[type="color"] {
             position: absolute;
             top: 0;
@@ -52,42 +59,52 @@
             opacity: 0;
             cursor: pointer;
         }
+
         .tag-draggable {
             touch-action: none;
         }
+
         .dragging {
             opacity: 0.5;
             background: #e0e7ff !important;
         }
+
         body[data-theme="dark"] {
             background-color: #0f172a;
             color: #f8fafc;
         }
+
         body[data-theme="dark"] .bg-white,
         body[data-theme="dark"] .bg-slate-50,
         body[data-theme="dark"] .bg-slate-100 {
             background-color: #1f2937 !important;
             color: #f8fafc;
         }
+
         body[data-theme="dark"] .bg-slate-200,
         body[data-theme="dark"] .bg-slate-300 {
             background-color: #334155 !important;
             color: #f8fafc !important;
         }
+
         body[data-theme="dark"] .text-slate-900,
         body[data-theme="dark"] .text-slate-800,
         body[data-theme="dark"] .text-slate-700 {
             color: #f1f5f9 !important;
         }
+
         body[data-theme="dark"] .text-slate-600 {
             color: #cbd5f5 !important;
         }
+
         body[data-theme="dark"] .text-slate-500 {
             color: #94a3b8 !important;
         }
+
         body[data-theme="dark"] .text-slate-400 {
             color: #cbd5f5 !important;
         }
+
         body[data-theme="dark"] select,
         body[data-theme="dark"] input,
         body[data-theme="dark"] textarea {
@@ -95,44 +112,56 @@
             color: #f8fafc;
             border-color: #334155;
         }
+
         body[data-theme="dark"] .border-slate-300,
         body[data-theme="dark"] .border-slate-200,
         body[data-theme="dark"] .border-slate-100 {
             border-color: #334155 !important;
         }
+
         body[data-theme="dark"] .color-picker-wrapper {
             border-color: #334155;
         }
+
         body[data-theme="dark"] nav {
             background-color: #1f2937 !important;
             border-color: #334155 !important;
         }
+
         body[data-theme="dark"] .nav-link {
             color: #cbd5f5 !important;
         }
+
         body[data-theme="dark"] .nav-link.text-blue-600 {
             color: #60a5fa !important;
         }
+
         body[data-theme="dark"] .nav-link:hover {
             color: #93c5fd !important;
         }
+
         body[data-theme="dark"] .hover\:bg-slate-300:hover {
             background-color: #475569 !important;
         }
+
         body[data-theme="dark"] .hover\:bg-slate-200:hover {
             background-color: #3f4c64 !important;
         }
+
         body[data-theme="dark"] ::-webkit-scrollbar-track {
             background: #1f2937;
         }
+
         body[data-theme="dark"] ::-webkit-scrollbar-thumb {
             background: #475569;
         }
+
         body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
             background: #64748b;
         }
     </style>
 </head>
+
 <body class="bg-slate-100 text-slate-800" data-page="settings" data-theme="light">
 
     <div class="container mx-auto p-4 md:p-8 max-w-4xl pb-24">
@@ -145,14 +174,17 @@
             <h2 class="text-2xl font-semibold mb-4">Apariencia</h2>
             <div class="space-y-3">
                 <div>
-                    <label for="theme-select" class="block text-sm font-medium text-slate-600 mb-1">Tema de la aplicación</label>
-                    <select id="theme-select" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="theme-select" class="block text-sm font-medium text-slate-600 mb-1">Tema de la
+                        aplicación</label>
+                    <select id="theme-select"
+                        class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="light">Claro (predeterminado)</option>
                         <option value="dark">Oscuro</option>
                         <option value="system">Sistema</option>
                     </select>
                 </div>
-                <p class="text-sm text-slate-500">La apariencia cambiará inmediatamente y se recordará en este dispositivo.</p>
+                <p class="text-sm text-slate-500">La apariencia cambiará inmediatamente y se recordará en este
+                    dispositivo.</p>
             </div>
         </div>
 
@@ -160,12 +192,18 @@
             <h2 class="text-2xl font-semibold mb-4">Perfil</h2>
             <div class="space-y-4">
                 <div>
-                    <label for="user-name-input" class="block text-sm font-medium text-slate-600 mb-1">Nombre del usuario</label>
-                    <input id="user-name-input" type="text" placeholder="Escribe tu nombre" autocomplete="name" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="user-name-input" class="block text-sm font-medium text-slate-600 mb-1">Nombre del
+                        usuario</label>
+                    <input id="user-name-input" type="text" placeholder="Escribe tu nombre" autocomplete="name"
+                        class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <button id="save-user-name-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar Nombre</button>
-                    <button id="clear-user-name-btn" class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar Nombre</button>
+                    <button id="save-user-name-btn"
+                        class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar
+                        Nombre</button>
+                    <button id="clear-user-name-btn"
+                        class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar
+                        Nombre</button>
                 </div>
                 <p id="user-name-status" class="text-sm text-slate-500"></p>
             </div>
@@ -177,7 +215,8 @@
                 <div class="flex flex-col md:flex-row md:items-end gap-4">
                     <div class="flex-1">
                         <label for="birthday-month" class="block text-sm font-medium text-slate-600 mb-1">Mes</label>
-                        <select id="birthday-month" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <select id="birthday-month"
+                            class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             <option value="">Selecciona un mes</option>
                             <option value="1">Enero</option>
                             <option value="2">Febrero</option>
@@ -195,12 +234,17 @@
                     </div>
                     <div class="flex-1">
                         <label for="birthday-day" class="block text-sm font-medium text-slate-600 mb-1">Día</label>
-                        <input id="birthday-day" type="number" min="1" max="31" placeholder="Día" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input id="birthday-day" type="number" min="1" max="31" placeholder="Día"
+                            class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <button id="save-birthday-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar Cumpleaños</button>
-                    <button id="clear-birthday-btn" class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar Registro</button>
+                    <button id="save-birthday-btn"
+                        class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar
+                        Cumpleaños</button>
+                    <button id="clear-birthday-btn"
+                        class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar
+                        Registro</button>
                 </div>
                 <p id="birthday-status" class="text-sm text-slate-500"></p>
             </div>
@@ -209,11 +253,13 @@
         <div class="bg-white p-6 rounded-2xl shadow-lg mb-6">
             <h2 class="text-2xl font-semibold mb-4">Gestionar Etiquetas</h2>
             <div class="flex gap-2 mb-4">
-                <input id="new-tag-input" type="text" placeholder="Nombre de la nueva etiqueta" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <input id="new-tag-input" type="text" placeholder="Nombre de la nueva etiqueta"
+                    class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 <div id="new-tag-color-wrapper" class="color-picker-wrapper" style="background-color: #3b82f6;">
                     <input id="new-tag-color" type="color" value="#3b82f6" title="Elegir color para la etiqueta">
                 </div>
-                <button id="add-tag-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 flex-shrink-0">Añadir</button>
+                <button id="add-tag-btn"
+                    class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 flex-shrink-0">Añadir</button>
             </div>
             <div id="tags-list" class="space-y-2"></div>
         </div>
@@ -254,19 +300,79 @@
             </div>
         </div>
 
+        <div class="bg-white p-6 rounded-2xl shadow-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">Integraciones</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="discord-webhook-input" class="block text-sm font-medium text-slate-600 mb-1">Discord
+                        Webhook URL</label>
+                    <input id="discord-webhook-input" type="password" placeholder="https://discord.com/api/webhooks/..."
+                        class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button id="save-webhook-btn"
+                        class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar
+                        Webhook</button>
+                    <button id="clear-webhook-btn"
+                        class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar
+                        Webhook</button>
+                </div>
+                <p id="webhook-status" class="text-sm text-slate-500"></p>
+                <p class="text-xs text-slate-400 mt-2">
+                    <strong class="font-medium text-slate-600">Nota de Seguridad:</strong> La URL se guarda localmente
+                    en tu navegador. Úsala solo en dispositivos de confianza.
+                </p>
+            </div>
+        </div>
+
         <div class="bg-white p-6 rounded-2xl shadow-lg">
             <h2 class="text-2xl font-semibold mb-4">Acciones de Datos</h2>
             <div class="space-y-3">
-                <button id="import-notes-btn" class="w-full bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-600 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <button id="import-notes-btn"
+                    class="w-full bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-600 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-upload">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" x2="12" y1="3" y2="15" />
+                    </svg>
                     <span>Importar Datos desde JSON</span>
                 </button>
-                <button id="export-notes-btn" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <button id="export-notes-btn"
+                    class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-download">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
                     <span>Exportar Datos a JSON</span>
                 </button>
-                <button id="clear-all-data-btn" class="w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                <button id="export-discord-btn"
+                    class="w-full bg-[#5865F2] text-white font-semibold py-3 px-4 rounded-lg hover:bg-[#4752C4] transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-share-2">
+                        <circle cx="18" cy="5" r="3" />
+                        <circle cx="6" cy="12" r="3" />
+                        <circle cx="18" cy="19" r="3" />
+                        <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
+                        <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
+                    </svg>
+                    <span>Exportar a Discord</span>
+                </button>
+                <button id="clear-all-data-btn"
+                    class="w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-[1.02] flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-trash-2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
                     <span>Eliminar Todos los Datos</span>
                 </button>
             </div>
@@ -275,39 +381,96 @@
 
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 z-30">
-        <a href="index.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-tabs"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M15 2v20"/><path d="M15 7h5"/><path d="M15 12"/><path d="M15 17h5"/></svg>
+    <nav
+        class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 z-30">
+        <a href="index.html"
+            class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-notebook-tabs">
+                <path d="M2 6h4" />
+                <path d="M2 10h4" />
+                <path d="M2 14h4" />
+                <path d="M2 18h4" />
+                <rect width="16" height="20" x="4" y="2" rx="2" />
+                <path d="M15 2v20" />
+                <path d="M15 7h5" />
+                <path d="M15 12" />
+                <path d="M15 17h5" />
+            </svg>
             <span class="text-xs font-medium mt-1">Notas</span>
         </a>
-        <a href="historial.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <a href="historial.html"
+            class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-history">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+            </svg>
             <span class="text-xs font-medium mt-1">Historial</span>
         </a>
-        <a href="estadistica.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-3"><path d="M3 3v18h18"/><path d="M13 13h4v5h-4z"/><path d="M6 16h4v2H6z"/><path d="M18 9h4v9h-4z"/></svg>
+        <a href="estadistica.html"
+            class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-bar-chart-3">
+                <path d="M3 3v18h18" />
+                <path d="M13 13h4v5h-4z" />
+                <path d="M6 16h4v2H6z" />
+                <path d="M18 9h4v9h-4z" />
+            </svg>
             <span class="text-xs font-medium mt-1">Estadísticas</span>
         </a>
-        <a href="reflexion.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lamp-desk"><path d="M13 5h7"/><path d="M13 9h4"/><path d="M10 12h8"/><path d="M16 9c0 2.8-1.2 4.7-3 6"/><path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6"/><path d="M8 17v4"/><path d="M6 21h4"/></svg>
+        <a href="reflexion.html"
+            class="nav-link flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-lamp-desk">
+                <path d="M13 5h7" />
+                <path d="M13 9h4" />
+                <path d="M10 12h8" />
+                <path d="M16 9c0 2.8-1.2 4.7-3 6" />
+                <path d="M12 3a4 4 0 0 0-8 1v6l2 4h4l2-4v-6" />
+                <path d="M8 17v4" />
+                <path d="M6 21h4" />
+            </svg>
             <span class="text-xs font-medium mt-1">Reflexión</span>
         </a>
-        <a href="ajustes.html" class="nav-link flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors duración-200">
-             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22-.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <a href="ajustes.html"
+            class="nav-link flex flex-col items-center justify-center w-full h-full text-blue-600 transition-colors duración-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-settings">
+                <path
+                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22-.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+            </svg>
             <span class="text-xs font-medium mt-1">Ajustes</span>
         </a>
     </nav>
 
-    <div id="delete-all-modal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
+    <div id="delete-all-modal"
+        class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
         <div class="bg-white rounded-2xl p-8 shadow-xl max-w-sm w-full transform transition-all duración-300 scale-95">
-             <h3 class="text-2xl font-bold mb-4 text-red-700 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            <h3 class="text-2xl font-bold mb-4 text-red-700 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-alert-triangle">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <line x1="12" x2="12" y1="9" y2="13" />
+                    <line x1="12" x2="12.01" y1="17" y2="17" />
+                </svg>
                 ¡Acción Irreversible!
             </h3>
-            <p class="text-slate-600 mb-8">¿Estás absolutamente seguro de que quieres <strong>eliminar TODOS los datos</strong>? Perderás todo permanentemente.</p>
+            <p class="text-slate-600 mb-8">¿Estás absolutamente seguro de que quieres <strong>eliminar TODOS los
+                    datos</strong>? Perderás todo permanentemente.</p>
             <div class="flex justify-end gap-4">
-                <button data-action="cancel" class="px-5 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition">Cancelar</button>
-                <button data-action="confirm" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">Sí, Eliminar Todo</button>
+                <button data-action="cancel"
+                    class="px-5 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition">Cancelar</button>
+                <button data-action="confirm"
+                    class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">Sí,
+                    Eliminar Todo</button>
             </div>
         </div>
     </div>
@@ -327,4 +490,5 @@
         }
     </script>
 </body>
+
 </html>
