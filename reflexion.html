@@ -314,9 +314,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const DB_NAME = 'NotesDB';
-            const DB_VERSION = 6;
+            const DB_VERSION = 7;
             const NOTES_STORE = 'notes';
             const TAGS_STORE = 'tags';
+            const SESSIONS_STORE = 'sessions';
             const QUOTE_API_URL = 'https://api.quotable.io/random?maxLength=160';
 
             const reflectionDateDisplay = document.getElementById('reflection-date-display');
@@ -399,6 +400,12 @@
                     }
                     if (!db.objectStoreNames.contains(TAGS_STORE)) {
                         db.createObjectStore(TAGS_STORE, { keyPath: 'name' });
+                    }
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('sessions')) {
+                        db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
                     }
                 };
 

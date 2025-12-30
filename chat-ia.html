@@ -172,14 +172,23 @@
         </header>
         <main class="flex-1 p-6 bg-orange-50/50 space-y-6">
             <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm border border-orange-200">
-                <h2 class="text-lg font-semibold mb-4 text-orange-800">Modelo por Defecto</h2>
+                <h2 class="text-lg font-semibold mb-4 text-orange-800">Configuración de API</h2>
+                <div class="mb-4">
+                    <label for="settings-api-key" class="block text-sm font-medium text-gray-700 mb-1">API Key de Gemini</label>
+                    <input type="password" id="settings-api-key" placeholder="Pega tu API Key aquí" class="bg-white border border-orange-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5">
+                    <p class="text-xs text-gray-500 mt-1">Tu clave se guarda localmente y nunca se comparte.</p>
+                </div>
+                
+                <h2 class="text-lg font-semibold mb-4 text-orange-800 border-t border-orange-100 pt-4">Modelo por Defecto</h2>
                 <p class="text-sm text-gray-600 mb-2">Selecciona el modelo de IA que se usará para iniciar nuevas conversaciones.</p>
                 <div class="relative">
                     <select id="settings-model-selector" class="bg-white border border-orange-300 text-orange-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5 appearance-none pr-8">
-                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Exp</option>
-                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Nuevo)</option>
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Más Inteligente)</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Equilibrado)</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Estable)</option>
+                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Rápido)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Legacy)</option>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-orange-700">
                         <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -263,8 +272,10 @@
 
     <script>
         const THEME_DB_NAME = 'NotesDB';
-        const THEME_DB_VERSION = 6;
+        const THEME_DB_VERSION = 7;
         const THEME_SETTINGS_STORE = 'settings';
+        const NOTES_STORE = 'notes';
+        const SESSIONS_STORE = 'sessions';
         const THEME_KEY = 'theme';
         const THEME_DEFAULT = 'light';
         const THEME_OPTIONS = new Set(['light', 'dark', 'system']);
@@ -371,14 +382,21 @@
 
         class GeminiChatApp {
             constructor() {
-                this.apiKey = 'AIzaSyCD8CoZMmSm9KbpMUSbdqpygzO9NMLekuM';
                 this.conversations = this.loadConversations();
                 this.settings = this.loadSettings();
+                this.apiKey = this.settings.apiKey || ''; // Cargar desde settings
                 this.currentConversationId = null;
                 this.conversationIdToDelete = null; 
                 this.initializeElements();
                 this.setupEventListeners();
-                this.showScreen('home');
+                
+                // Redirigir a ajustes si no hay API Key
+                if (!this.apiKey) {
+                    this.showScreen('settings');
+                    alert('Por favor, configura tu API Key de Gemini para comenzar.');
+                } else {
+                    this.showScreen('home');
+                }
             }
 
             // --- Inicialización y Manejo de DOM ---
@@ -396,6 +414,7 @@
 
                 // Elementos de ajustes
                 this.settingsModelSelector = document.getElementById('settings-model-selector');
+                this.settingsApiKeyInput = document.getElementById('settings-api-key');
                 this.convoCountSpan = document.getElementById('convo-count');
                 this.storageSizeSpan = document.getElementById('storage-size');
                 
@@ -455,6 +474,7 @@
                     this.chatScreen.classList.remove('hidden');
                 } else if (screenName === 'settings') {
                     this.settingsModelSelector.value = this.settings.defaultModel;
+                    this.settingsApiKeyInput.value = this.settings.apiKey || '';
                     this.updateStorageSummary();
                     this.settingsScreen.classList.remove('hidden');
                 }
@@ -501,9 +521,19 @@
             }
             
             startNewChat() {
+                if (!this.apiKey) {
+                    alert('Debes configurar tu API Key antes de iniciar un chat.');
+                    this.showScreen('settings');
+                    return;
+                }
                 this.currentConversationId = null;
                 this.chatContainer.innerHTML = '<div class="space-y-4"></div>';
                 const modelName = this.settingsModelSelector.options[this.settingsModelSelector.selectedIndex].text;
+                
+                // Resetear encabezado
+                const headingEl = document.getElementById('chat-screen-heading');
+                if (headingEl) headingEl.textContent = 'Nuevo Chat';
+                
                 this.status.textContent = `Nuevo chat con ${modelName}`;
                 this.addMessageToChat(`¡Hola! Soy ${modelName}. ¿En qué puedo ayudarte hoy?`, 'ai');
                 this.showScreen('chat');
@@ -521,6 +551,11 @@
                 
                 const modelOption = Array.from(this.settingsModelSelector.options).find(opt => opt.value === conversation.model);
                 const modelName = modelOption ? modelOption.text : conversation.model;
+                
+                // Actualizar encabezado con el título de la conversación
+                const headingEl = document.getElementById('chat-screen-heading');
+                if (headingEl) headingEl.textContent = conversation.title || 'Chat con Gemini';
+                
                 this.status.textContent = `Continuando chat con ${modelName}`;
                 this.showScreen('chat');
                 this.updateSendButtonState();
@@ -600,11 +635,21 @@
 
                     if (currentConvo.history.length === 2) {
                         try {
-                            const newTitle = await this.generateConversationTitle(message, responseText);
-                            currentConvo.title = newTitle;
+                            const newTitle = await this.generateConversationTitle(message, responseText, currentConvo.model);
+                            if (newTitle && newTitle.length > 3) {
+                                currentConvo.title = newTitle;
+                                // Actualizar el encabezado si es el chat actual
+                                const headingEl = document.getElementById('chat-screen-heading');
+                                if (headingEl) headingEl.textContent = newTitle;
+                            } else {
+                                // Fallback: Solo usar las primeras palabras si la API no da algo útil
+                                const words = message.split(' ').slice(0, 5).join(' ');
+                                currentConvo.title = words + (message.split(' ').length > 5 ? '...' : '');
+                            }
                         } catch (titleError) {
-                            console.error("Fallo al generar título, usando fallback:", titleError);
-                            currentConvo.title = message.substring(0, 40) + (message.length > 40 ? '...' : '');
+                            console.error("Fallo al generar título:", titleError);
+                            const words = message.split(' ').slice(0, 5).join(' ');
+                            currentConvo.title = words + (message.split(' ').length > 5 ? '...' : '');
                         }
                     }
 
@@ -619,32 +664,129 @@
                 }
             }
             
-            async generateConversationTitle(userMessage, aiResponse) {
-                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.apiKey}`;
-                const prompt = `Basado en la siguiente conversación, crea un título corto y descriptivo (máximo 5 palabras). Responde únicamente con el título, sin comillas ni texto introductorio.\n\nUsuario: "${userMessage}"\n\nAsistente: "${aiResponse}"`;
+            async generateConversationTitle(userMessage, aiResponse, model = 'gemini-2.0-flash') {
+                // Forzar un modelo flash para el título por rapidez y ahorro
+                const titleModel = model.includes('pro') ? 'gemini-2.0-flash' : model;
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${titleModel}:generateContent?key=${this.apiKey}`;
+                
+                // Prompt más agresivo para evitar que repita la pregunta
+                const prompt = `Actúa como un sintetizador de títulos. 
+Analiza este intercambio y crea un título ÚNICO, creativo y breve (máximo 4 palabras) que resuma el TEMA, NO repitas la pregunta del usuario.
+Responde solo con el texto del título.
+
+Usuario: "${userMessage.substring(0, 500)}"
+IA: "${aiResponse.substring(0, 500)}"`;
                 
                 const requestBody = {
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.2, maxOutputTokens: 20 }
+                    generationConfig: { 
+                        temperature: 1, // Más creatividad
+                        maxOutputTokens: 20 
+                    }
                 };
 
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) return null;
+
+                    const data = await response.json();
+                    let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+                    if (!title) return null;
+                    
+                    // Limpieza profunda del título
+                    return title.replace(/["'*#]/g, '').replace(/\.$/, '').substring(0, 50);
+                } catch (e) {
+                    console.error("Error en generateConversationTitle:", e);
+                    return null;
+                }
+            }
+
+            async fetchContextData() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(THEME_DB_NAME, THEME_DB_VERSION);
+                    request.onerror = () => resolve({ notes: [], sessions: [] });
+                    request.onsuccess = (event) => {
+                        const db = event.target.result;
+                        const context = { notes: [], sessions: [] };
+                        
+                        // Helper para obtener datos de un store
+                        const getAllFromStore = (storeName) => {
+                            return new Promise((res) => {
+                                if (!db.objectStoreNames.contains(storeName)) {
+                                    res([]);
+                                    return;
+                                }
+                                const tx = db.transaction(storeName, 'readonly');
+                                const store = tx.objectStore(storeName);
+                                const req = store.getAll();
+                                req.onsuccess = () => res(req.result);
+                                req.onerror = () => res([]);
+                            });
+                        };
+
+                        Promise.all([
+                            getAllFromStore(NOTES_STORE),
+                            getAllFromStore(SESSIONS_STORE)
+                        ]).then(([notes, sessions]) => {
+                            context.notes = notes;
+                            context.sessions = sessions;
+                            db.close();
+                            resolve(context);
+                        }).catch(() => {
+                            db.close();
+                            resolve(context);
+                        });
+                    };
                 });
+            }
 
-                if (!response.ok) throw new Error("La llamada a la API para el título falló.");
+            formatContextForAI(context) {
+                const { notes, sessions } = context;
+                let contextString = "Eres un asistente de IA integrado en 'App Notas', el diario personal del usuario. Tienes acceso completo a sus notas y registros pasados para dar respuestas personalizadas y profundas.\n\nINFORMACIÓN DE CONTEXTO (DIARIO PERSONAL):\n\n";
 
-                const data = await response.json();
-                let title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                // Resumen de Sesiones
+                if (sessions && sessions.length > 0) {
+                    const totalSessions = sessions.length;
+                    const totalTime = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+                    const hours = Math.floor(totalTime / 3600000);
+                    const minutes = Math.floor((totalTime % 3600000) / 60000);
+                    contextString += `[Métricas de Uso]\nTotal Sesiones: ${totalSessions}\nTiempo Total en App: ${hours}h ${minutes}m\n\n`;
+                }
 
-                if (!title) throw new Error("No se encontró un título válido en la respuesta de la API.");
-                
-                return title.replace(/["*]/g, ''); // Limpiar comillas o asteriscos
+                // Notas
+                if (notes && notes.length > 0) {
+                    contextString += `[Registro de Notas (${notes.length} notas en total)]\n`;
+                    // Ordenar por fecha reciente
+                    const sortedNotes = [...notes].sort((a, b) => b.id - a.id);
+                    
+                    sortedNotes.forEach((note, index) => {
+                        const date = new Date(note.id).toLocaleString('es-ES');
+                        const title = note.title || 'Sin título';
+                        const tags = note.tags && note.tags.length ? `Etiquetas: ${note.tags.join(', ')}` : 'Sin etiquetas';
+                        const content = note.content || '';
+                        // Truncar contenido si es excesivamente largo para mantener el contexto manejable pero útil
+                        const safeContent = content.length > 8000 ? content.substring(0, 8000) + '... (contenido truncado)' : content;
+                        
+                        contextString += `--- Nota ${index + 1} ---\nFecha: ${date}\nTítulo: ${title}\n${tags}\nContenido:\n${safeContent}\n\n`;
+                    });
+                } else {
+                    contextString += "El usuario aún no ha creado ninguna nota en su diario.\n";
+                }
+
+                contextString += "FIN DEL CONTEXTO. Usa esta información para responder preguntas del usuario sobre su vida, recuerdos, patrones emocionales o cualquier cosa relacionada con sus notas. Si la pregunta no requiere contexto del diario, responde normalmente pero mantén presente su estilo y temas recurrentes.";
+                return contextString;
             }
 
             async callGeminiAPI(history, model) {
+                const contextData = await this.fetchContextData();
+                const systemInstructionText = this.formatContextForAI(contextData);
+
                 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
                 
                 const contents = history.map(turn => ({
@@ -652,7 +794,12 @@
                     parts: [{ text: turn.message }]
                 }));
 
-                const requestBody = { contents };
+                const requestBody = {
+                    contents,
+                    system_instruction: {
+                        parts: [{ text: systemInstructionText }]
+                    }
+                };
                 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -774,9 +921,14 @@
             // --- Utilidades ---
             loadSettings() {
                 const stored = localStorage.getItem('gemini-chat-settings');
-                const defaults = { defaultModel: 'gemini-2.0-flash-exp' };
+                const defaults = { defaultModel: 'gemini-2.0-flash', apiKey: '' };
                 try {
-                    return stored ? JSON.parse(stored) : defaults;
+                    const settings = stored ? JSON.parse(stored) : defaults;
+                    // Migrar de modelos antiguos si es necesario
+                    if (settings.defaultModel === 'gemini-2.0-flash-exp') {
+                        settings.defaultModel = 'gemini-2.0-flash';
+                    }
+                    return settings;
                 } catch (e) {
                     return defaults;
                 }
@@ -784,6 +936,8 @@
 
             saveSettings() {
                 this.settings.defaultModel = this.settingsModelSelector.value;
+                this.settings.apiKey = this.settingsApiKeyInput.value.trim();
+                this.apiKey = this.settings.apiKey; // Actualizar instancia actual
                 localStorage.setItem('gemini-chat-settings', JSON.stringify(this.settings));
             }
 

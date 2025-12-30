@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const SETTINGS_STORE = 'settings';
+    const SESSIONS_STORE = 'sessions';
     const BIRTHDAY_KEY = 'birthday';
     const USER_NAME_KEY = 'userName';
     const WEBHOOK_URL_KEY = 'discordWebhookUrl';
@@ -328,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const request = indexedDB.open('NotesDB', 6);
+    const request = indexedDB.open('NotesDB', 7);
     request.onerror = (e) => console.error('Error DB:', e);
     request.onupgradeneeded = (e) => {
         db = e.target.result;
@@ -341,6 +342,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
             db.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+            db.createObjectStore(SESSIONS_STORE, { keyPath: 'id', autoIncrement: true });
         }
         if (e.oldVersion < 5 && tx.objectStoreNames.contains('notes')) {
             const noteStore = tx.objectStore('notes');
@@ -359,9 +363,54 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Actualiza las demás pestañas de la aplicación para completar la actualización de la base de datos.');
     };
 
+    const formatDuration = (ms) => {
+        if (!Number.isFinite(ms) || ms <= 0) return '--';
+        const seconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        
+        if (hours > 0) {
+            const remainingMinutes = minutes % 60;
+            return `${hours}h ${remainingMinutes}m`;
+        }
+        if (minutes > 0) {
+            return `${minutes} min`;
+        }
+        return `${seconds} s`;
+    };
+
+    const updateSessionMetrics = () => {
+        const totalSessionTimeEl = document.getElementById('total-session-time');
+        const averageSessionTimeEl = document.getElementById('average-session-time');
+        
+        if (!totalSessionTimeEl && !averageSessionTimeEl) return;
+        if (!db) return;
+
+        const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+        if (!hasSessionsStore) {
+            if (totalSessionTimeEl) totalSessionTimeEl.textContent = '--';
+            if (averageSessionTimeEl) averageSessionTimeEl.textContent = '--';
+            return;
+        }
+
+        const tx = db.transaction(SESSIONS_STORE, 'readonly');
+        const store = tx.objectStore(SESSIONS_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = (e) => {
+            const sessions = e.target.result || [];
+            const totalDuration = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+            const averageDuration = sessions.length > 0 ? totalDuration / sessions.length : 0;
+
+            if (totalSessionTimeEl) totalSessionTimeEl.textContent = formatDuration(totalDuration);
+            if (averageSessionTimeEl) averageSessionTimeEl.textContent = formatDuration(averageDuration);
+        };
+    };
+
     function finalizeDatabaseInitialization() {
         flushPendingThemePreference();
         loadThemePreference();
+        updateSessionMetrics();
         if (typeof populateMultiSelectDropdown === 'function') {
             populateMultiSelectDropdown();
         }
@@ -1667,10 +1716,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
-            const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+            const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+            
+            const stores = ['notes', 'tags'];
+            if (hasSettingsStore) stores.push(SETTINGS_STORE);
+            if (hasSessionsStore) stores.push(SESSIONS_STORE);
+
             const tx = db.transaction(stores, 'readonly');
             const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
             const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
+            const sessionsPromise = hasSessionsStore ? requestToPromise(tx.objectStore(SESSIONS_STORE).getAll()) : Promise.resolve([]);
 
             let themePreference = null;
             let storedUserName = null;
@@ -1693,15 +1748,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            const [notes, tags] = await Promise.all([notesPromise, tagsPromise]);
+            const [notes, tags, sessions] = await Promise.all([notesPromise, tagsPromise, sessionsPromise]);
 
             const exportObj = {
                 meta: {
-                    version: 1,
+                    version: 2,
                     exportedAt: new Date().toISOString()
                 },
                 notes: Array.isArray(notes) ? notes : [],
                 tags: Array.isArray(tags) ? tags : [],
+                sessions: Array.isArray(sessions) ? sessions : [],
                 settings: {
                     theme: themePreference,
                     userName: storedUserName,
@@ -1735,10 +1791,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
-            const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+            const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+
+            const stores = ['notes', 'tags'];
+            if (hasSettingsStore) stores.push(SETTINGS_STORE);
+            if (hasSessionsStore) stores.push(SESSIONS_STORE);
+
             const tx = db.transaction(stores, 'readonly');
             const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
             const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
+            const sessionsPromise = hasSessionsStore ? requestToPromise(tx.objectStore(SESSIONS_STORE).getAll()) : Promise.resolve([]);
 
             let themePreference = null;
             let storedUserName = null;
@@ -1761,7 +1823,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            const [notes, tags] = await Promise.all([notesPromise, tagsPromise]);
+            const [notes, tags, sessions] = await Promise.all([notesPromise, tagsPromise, sessionsPromise]);
 
             if (!storedWebhookUrl) {
                 throw new Error('No se ha configurado una URL de Webhook. Ve a la sección de Integraciones.');
@@ -1769,11 +1831,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const exportObj = {
                 meta: {
-                    version: 1,
+                    version: 2,
                     exportedAt: new Date().toISOString()
                 },
                 notes: Array.isArray(notes) ? notes : [],
                 tags: Array.isArray(tags) ? tags : [],
+                sessions: Array.isArray(sessions) ? sessions : [],
                 settings: {
                     theme: themePreference,
                     userName: storedUserName,
@@ -1836,10 +1899,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const notesArray = Array.isArray(payload.notes) ? payload.notes : [];
         const tagsArray = Array.isArray(payload.tags) ? payload.tags : [];
+        const sessionsArray = Array.isArray(payload.sessions) ? payload.sessions : [];
         const rawSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : {};
 
         const sanitizedNotes = notesArray.filter(note => note && typeof note === 'object' && typeof note.id === 'number');
         const sanitizedTags = tagsArray.filter(tag => tag && typeof tag === 'object' && typeof tag.name === 'string');
+        const sanitizedSessions = sessionsArray.filter(session => session && typeof session === 'object' && typeof session.duration === 'number');
 
         const sanitizedSettings = {
             theme: typeof rawSettings.theme === 'string' ? sanitizeThemePreference(rawSettings.theme) : null,
@@ -1863,11 +1928,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
-        const stores = hasSettingsStore ? ['notes', 'tags', SETTINGS_STORE] : ['notes', 'tags'];
+        const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+        
+        const stores = ['notes', 'tags'];
+        if (hasSettingsStore) stores.push(SETTINGS_STORE);
+        if (hasSessionsStore) stores.push(SESSIONS_STORE);
+
         const tx = db.transaction(stores, 'readwrite');
         const notesStore = tx.objectStore('notes');
         const tagsStore = tx.objectStore('tags');
         const settingsStore = hasSettingsStore ? tx.objectStore(SETTINGS_STORE) : null;
+        const sessionsStore = hasSessionsStore ? tx.objectStore(SESSIONS_STORE) : null;
 
         const clearPromises = [
             requestToPromise(notesStore.clear()),
@@ -1876,12 +1947,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (settingsStore) {
             clearPromises.push(requestToPromise(settingsStore.clear()));
         }
+        if (sessionsStore) {
+            clearPromises.push(requestToPromise(sessionsStore.clear()));
+        }
         await Promise.all(clearPromises);
 
         const writePromises = [
             ...sanitizedNotes.map(note => requestToPromise(notesStore.put(note))),
             ...sanitizedTags.map(tag => requestToPromise(tagsStore.put(tag)))
         ];
+
+        if (sessionsStore) {
+            writePromises.push(...sanitizedSessions.map(session => requestToPromise(sessionsStore.put(session))));
+        }
 
         if (settingsStore) {
             if (sanitizedSettings.theme) {
@@ -2002,6 +2080,50 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // --- Session Tracking System ---
+    let sessionStartTime = Date.now();
+    let sessionSaved = false;
+
+    const saveSession = () => {
+        if (!db || sessionSaved) return;
+        const endTime = Date.now();
+        const duration = endTime - sessionStartTime;
+        
+        // Ignorar sesiones menores a 1 segundo para evitar ruido
+        if (duration < 1000) return;
+
+        try {
+            if (db.objectStoreNames.contains(SESSIONS_STORE)) {
+                const tx = db.transaction(SESSIONS_STORE, 'readwrite');
+                const store = tx.objectStore(SESSIONS_STORE);
+                store.add({
+                    startTime: sessionStartTime,
+                    endTime: endTime,
+                    duration: duration,
+                    date: new Date().toISOString()
+                });
+                sessionSaved = true;
+                // console.log('Sesión guardada:', duration, 'ms');
+            }
+        } catch (e) {
+            console.warn('No se pudo guardar la sesión:', e);
+        }
+    };
+
+    // Resetear sesión al volver a la pestaña
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            saveSession();
+        } else {
+            sessionStartTime = Date.now();
+            sessionSaved = false;
+        }
+    });
+
+    // Guardar al cerrar o recargar
+    window.addEventListener('pagehide', saveSession);
+    window.addEventListener('beforeunload', saveSession);
     if (multiSelectContainer && tagsDropdown) {
         multiSelectContainer.addEventListener('click', () => {
             tagsDropdown.classList.toggle('hidden');

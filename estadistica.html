@@ -269,7 +269,7 @@
                             </span>
                             <span class="text-xs font-medium text-slate-400">Ítem #3</span>
                         </div>
-                        <p id="journal-age" class="text-3xl font-bold text-slate-900">--</p>
+                        <p id="journal-age" class="text-2xl font-bold text-slate-900">--</p>
                         <p class="text-sm text-slate-500 mt-3">Tiempo transcurrido desde tu primera nota.</p>
                     </div>
                 </article>
@@ -327,6 +327,39 @@
                         </div>
                         <p id="top-time-range" class="text-2xl font-bold text-slate-900">--:-- - --:--</p>
                         <p id="top-time-range-count" class="text-sm text-slate-500 mt-3">Notas registradas en la franja: --</p>
+                    </div>
+                </article>
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-timer">
+                                    <line x1="10" x2="14" y1="2" y2="2"/>
+                                    <line x1="12" x2="15" y1="14" y2="11"/>
+                                    <circle cx="12" cy="14" r="8"/>
+                                </svg>
+                                Tiempo total
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #7</span>
+                        </div>
+                        <p id="total-session-time" class="text-2xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Tiempo total acumulado en la aplicación.</p>
+                    </div>
+                </article>
+
+                <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+                    <div class="stat-card-content">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                                Tiempo medio
+                            </span>
+                            <span class="text-xs font-medium text-slate-400">Ítem #8</span>
+                        </div>
+                        <p id="average-session-time" class="text-2xl font-bold text-slate-900">--</p>
+                        <p class="text-sm text-slate-500 mt-3">Duración promedio de tus sesiones.</p>
                     </div>
                 </article>
             </div>
@@ -538,6 +571,8 @@
             const journalAgeEl = document.getElementById('journal-age');
             const averageWordsPerNoteEl = document.getElementById('average-words-per-note');
             const averageTagsPerNoteEl = document.getElementById('average-tags-per-note');
+            const totalSessionTimeEl = document.getElementById('total-session-time');
+            const averageSessionTimeEl = document.getElementById('average-session-time');
             const topTimeRangeEl = document.getElementById('top-time-range');
             const topTimeRangeCountEl = document.getElementById('top-time-range-count');
             const notesTotalIndicatorEl = document.getElementById('notes-total-indicator');
@@ -566,9 +601,10 @@
             let refreshVisualizations = () => {};
 
             const DB_NAME = 'NotesDB';
-            const DB_VERSION = 6;
+            const DB_VERSION = 7;
             const NOTES_STORE = 'notes';
             const TAGS_STORE = 'tags';
+            const SESSIONS_STORE = 'sessions';
             const dayInMs = 24 * 60 * 60 * 1000;
 
             const timeRanges = [
@@ -846,29 +882,65 @@
                 return trimmed.split(/\s+/).filter(Boolean).length;
             };
 
+            const formatDuration = (ms) => {
+                if (!Number.isFinite(ms) || ms <= 0) return '--';
+                const seconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                
+                if (hours > 0) {
+                    const remainingMinutes = minutes % 60;
+                    return `${hours}h ${remainingMinutes}m`;
+                }
+                if (minutes > 0) {
+                    return `${minutes} min`;
+                }
+                return `${seconds} s`;
+            };
+
             const formatJournalAge = (firstDate) => {
                 if (!(firstDate instanceof Date) || Number.isNaN(firstDate.getTime())) return '--';
                 const now = new Date();
+                
+                // Diferencia en milisegundos para comprobación rápida de < 24h
                 let diffMs = now.getTime() - firstDate.getTime();
                 if (diffMs < 0) diffMs = 0;
 
-                if (diffMs < dayInMs) {
-                    const hours = Math.max(1, Math.round(diffMs / (60 * 60 * 1000)));
+                // Si es menos de 24 horas, mostrar en horas
+                if (diffMs < 24 * 60 * 60 * 1000) {
+                    const hours = Math.max(1, Math.floor(diffMs / (60 * 60 * 1000)));
                     return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
                 }
 
-                const days = Math.round(diffMs / dayInMs);
-                if (days < 30) {
-                    return `${days} ${days === 1 ? 'día' : 'días'}`;
+                // Cálculo preciso de Años, Meses y Días
+                let years = now.getFullYear() - firstDate.getFullYear();
+                let months = now.getMonth() - firstDate.getMonth();
+                let days = now.getDate() - firstDate.getDate();
+
+                // Ajuste por días negativos (tomamos prestado del mes anterior)
+                if (days < 0) {
+                    months--;
+                    // Días en el mes anterior real
+                    const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+                    days += prevMonthLastDay.getDate();
                 }
 
-                const months = Math.round(days / 30);
-                if (months < 12) {
-                    return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+                // Ajuste por meses negativos (tomamos prestado del año anterior)
+                if (months < 0) {
+                    years--;
+                    months += 12;
                 }
 
-                const years = Math.max(1, Math.round(months / 12));
-                return `${years} ${years === 1 ? 'año' : 'años'}`;
+                const parts = [];
+                if (years > 0) parts.push(`${years} ${years === 1 ? 'año' : 'años'}`);
+                if (months > 0) parts.push(`${months} ${months === 1 ? 'mes' : 'meses'}`);
+                if (days > 0) parts.push(`${days} ${days === 1 ? 'día' : 'días'}`);
+
+                if (parts.length === 0) return '1 día';
+
+                // Formateo: "1 año, 2 meses y 3 días"
+                if (parts.length === 1) return parts[0];
+                return parts.slice(0, -1).join(', ') + ' y ' + parts.slice(-1);
             };
 
             const requestToPromise = (request) => new Promise((resolve, reject) => {
@@ -883,6 +955,8 @@
                 setText(journalAgeEl, '--');
                 setText(averageWordsPerNoteEl, '--');
                 setText(averageTagsPerNoteEl, '--');
+                setText(totalSessionTimeEl, '--');
+                setText(averageSessionTimeEl, '--');
                 setText(topTimeRangeEl, '--:-- - --:--');
                 setText(topTimeRangeCountEl, 'Notas registradas en la franja: --');
                 setText(notesTotalIndicatorEl, '0');
@@ -1032,9 +1106,20 @@
                 setText(tagFrequencyEmptyEl, defaultTagEmptyText);
             };
 
-            const updateOverview = (notes, tagsMap) => {
+            const updateOverview = (notes, tagsMap, sessions) => {
+                // Calcular estadísticas de sesiones
+                const sessionList = Array.isArray(sessions) ? sessions : [];
+                const totalDuration = sessionList.reduce((acc, session) => acc + (session.duration || 0), 0);
+                const averageDuration = sessionList.length > 0 ? totalDuration / sessionList.length : 0;
+
+                setText(totalSessionTimeEl, formatDuration(totalDuration));
+                setText(averageSessionTimeEl, formatDuration(averageDuration));
+
                 if (!Array.isArray(notes) || notes.length === 0) {
                     showEmptyState();
+                    // Restaurar estadísticas de sesión después de que showEmptyState() las limpie
+                    setText(totalSessionTimeEl, formatDuration(totalDuration));
+                    setText(averageSessionTimeEl, formatDuration(averageDuration));
                     return;
                 }
 
@@ -1388,12 +1473,26 @@
             }
             const loadStats = (db) => {
                 try {
-                    const transaction = db.transaction([NOTES_STORE, TAGS_STORE], 'readonly');
+                    const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+                    const stores = [NOTES_STORE, TAGS_STORE];
+                    if (hasSessionsStore) stores.push(SESSIONS_STORE);
+
+                    const transaction = db.transaction(stores, 'readonly');
                     const notesRequest = transaction.objectStore(NOTES_STORE).getAll();
                     const tagsRequest = transaction.objectStore(TAGS_STORE).getAll();
+                    const sessionsRequest = hasSessionsStore 
+                        ? transaction.objectStore(SESSIONS_STORE).getAll() 
+                        : { result: [], onsuccess: null, onerror: null }; // Mock request-like object handled manually below if needed, but Promise.all approach is better.
 
-                    Promise.all([requestToPromise(notesRequest), requestToPromise(tagsRequest)])
-                        .then(([notesRaw, tagsRaw]) => {
+                    // Helper to safely handle optional store
+                    const getSessions = () => hasSessionsStore ? requestToPromise(transaction.objectStore(SESSIONS_STORE).getAll()) : Promise.resolve([]);
+
+                    Promise.all([
+                        requestToPromise(notesRequest), 
+                        requestToPromise(tagsRequest),
+                        getSessions()
+                    ])
+                        .then(([notesRaw, tagsRaw, sessionsRaw]) => {
                             const notes = Array.isArray(notesRaw) ? notesRaw.filter((note) => typeof note?.id === 'number') : [];
                             const tagsMap = new Map();
                             if (Array.isArray(tagsRaw)) {
@@ -1409,7 +1508,7 @@
                                 return;
                             }
 
-                            updateOverview(notes, tagsMap);
+                            updateOverview(notes, tagsMap, sessionsRaw);
                         })
                         .catch((error) => {
                             console.error('No se pudieron obtener los datos del usuario.', error);
@@ -1430,6 +1529,23 @@
             }
 
             const openRequest = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            openRequest.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(NOTES_STORE)) {
+                    db.createObjectStore(NOTES_STORE, { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains(TAGS_STORE)) {
+                    db.createObjectStore(TAGS_STORE, { keyPath: 'name' });
+                }
+                if (!db.objectStoreNames.contains('settings')) {
+                    db.createObjectStore('settings', { keyPath: 'key' });
+                }
+                if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+                    db.createObjectStore(SESSIONS_STORE, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+
             openRequest.onsuccess = (event) => {
                 const db = event.target.result;
                 loadStats(db);
