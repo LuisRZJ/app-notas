@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const noteFormModal = document.getElementById('note-form-modal');
     const noteFormModalContent = document.getElementById('note-form-modal-content');
+    const closeNoteModalBtn = document.getElementById('close-note-modal-btn');
     const noteTitleInput = document.getElementById('note-title');
     const noteContentInput = document.getElementById('note-content');
     const formTitle = document.getElementById('form-title');
@@ -2049,6 +2050,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
     if (showNoteFormBtn) showNoteFormBtn.addEventListener('click', showNoteFormModal);
+    if (closeNoteModalBtn) closeNoteModalBtn.addEventListener('click', resetForm);
     if (saveNoteBtn) saveNoteBtn.addEventListener('click', saveNote);
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
     if (importNotesBtn && importFileInput) {
