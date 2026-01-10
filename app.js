@@ -160,6 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const META_THEME_COLOR_LIGHT = '#2563eb';
     const META_THEME_COLOR_DARK = '#0f172a';
 
+    // Configuración de Supabase
+    const SUPABASE_URL = 'https://zpdidzngdgesfweplfvf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZGlkem5nZGdlc2Z3ZXBsZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODQyNTcsImV4cCI6MjA3NTI2MDI1N30.mqNaYyJZaGK0yX_IeJlwj921cC6Trn63lleYEBRuwgg';
+    let supabaseClient = null;
+
+    if (typeof supabase !== 'undefined') {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
     let db;
     let noteIdToEdit = null;
     let noteIdToDelete = null;
@@ -875,6 +884,224 @@ document.addEventListener('DOMContentLoaded', () => {
         tx.onerror = () => {
             showWebhookStatus('No se pudo eliminar el Webhook.', 'error');
         };
+    };
+
+    // --- Lógica de Supabase ---
+    const supabaseStatusEl = document.getElementById('supabase-status');
+    const supabaseLoggedInEl = document.getElementById('supabase-logged-in');
+    const supabaseLoggedOutEl = document.getElementById('supabase-logged-out');
+    const supabaseUserEmailEl = document.getElementById('supabase-user-email');
+
+    const showSupabaseStatus = (message, type = 'info') => {
+        if (!supabaseStatusEl) return;
+        supabaseStatusEl.textContent = message;
+        supabaseStatusEl.classList.remove('hidden', 'text-blue-600', 'text-green-600', 'text-red-600');
+        if (type === 'success') supabaseStatusEl.classList.add('text-green-600');
+        else if (type === 'error') supabaseStatusEl.classList.add('text-red-600');
+        else supabaseStatusEl.classList.add('text-blue-600');
+        
+        setTimeout(() => supabaseStatusEl.classList.add('hidden'), 5000);
+    };
+
+    const updateSupabaseUI = async () => {
+        if (!supabaseClient || !supabaseLoggedInEl || !supabaseLoggedOutEl) return;
+        
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (session) {
+            supabaseLoggedInEl.classList.remove('hidden');
+            supabaseLoggedOutEl.classList.add('hidden');
+            if (supabaseUserEmailEl) supabaseUserEmailEl.textContent = session.user.email;
+        } else {
+            supabaseLoggedInEl.classList.add('hidden');
+            supabaseLoggedOutEl.classList.remove('hidden');
+        }
+    };
+
+    const handleSupabaseLogin = async () => {
+        const email = document.getElementById('supabase-email')?.value;
+        const password = document.getElementById('supabase-password')?.value;
+        
+        if (!email || !password) {
+            showSupabaseStatus('Email y contraseña requeridos', 'error');
+            return;
+        }
+
+        showSupabaseStatus('Iniciando sesión...');
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            showSupabaseStatus('Error: ' + error.message, 'error');
+        } else {
+            showSupabaseStatus('Sesión iniciada correctamente', 'success');
+            updateSupabaseUI();
+            syncWithSupabase(); // Sincronizar al entrar
+        }
+    };
+
+    const handleSupabaseSignup = async () => {
+        const email = document.getElementById('supabase-email')?.value;
+        const password = document.getElementById('supabase-password')?.value;
+        
+        if (!email || !password) {
+            showSupabaseStatus('Email y contraseña requeridos', 'error');
+            return;
+        }
+
+        showSupabaseStatus('Creando cuenta...');
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        
+        if (error) {
+            showSupabaseStatus('Error: ' + error.message, 'error');
+        } else {
+            showSupabaseStatus('Registro exitoso. Revisa tu email o inicia sesión.', 'success');
+        }
+    };
+
+    const handleSupabaseLogout = async () => {
+        await supabaseClient.auth.signOut();
+        updateSupabaseUI();
+        showSupabaseStatus('Sesión cerrada', 'info');
+    };
+
+    const syncWithSupabase = async () => {
+        if (!supabaseClient || !db) return;
+        
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        showSupabaseStatus('Sincronizando (Bidireccional)...');
+
+        try {
+            // 1. Obtener notas remotas
+            const { data: remoteNotes, error: remoteError } = await supabaseClient
+                .from('notes')
+                .select('*');
+
+            if (remoteError) throw remoteError;
+
+            // 2. Obtener notas locales (Solo lectura inicial)
+            const localNotes = await requestToPromise(
+                db.transaction('notes', 'readonly').objectStore('notes').getAll()
+            );
+
+            // Mapas para acceso rápido por ID
+            const remoteMap = new Map(remoteNotes.map(n => [n.id, n]));
+            const localMap = new Map(localNotes.map(n => [n.id, n]));
+
+            // Conjunto de todos los IDs únicos
+            const allIds = new Set([...remoteMap.keys(), ...localMap.keys()]);
+
+            const updatesToRemote = [];
+            const updatesToLocal = [];
+
+            for (const id of allIds) {
+                const remote = remoteMap.get(id);
+                const local = localMap.get(id);
+
+                if (remote && local) {
+                    // Ambos existen: Comparar timestamps (Last Write Wins)
+                    // Usamos 0 si no hay fecha para forzar actualización
+                    const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
+                    const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+
+                    if (localTime > remoteTime) {
+                        // Gana Local -> Subir a Nube
+                        updatesToRemote.push(local);
+                    } else if (remoteTime > localTime) {
+                        // Gana Remota -> Actualizar Local
+                        updatesToLocal.push(remote);
+                    }
+                    // Si son iguales, no hacemos nada
+                } else if (local && !remote) {
+                    // Solo local -> Subir a Nube
+                    updatesToRemote.push(local);
+                } else if (remote && !local) {
+                    // Solo remoto -> Descargar a Local
+                    updatesToLocal.push(remote);
+                }
+            }
+
+            // 3. Aplicar actualizaciones locales (Nueva transacción de escritura)
+            if (updatesToLocal.length > 0) {
+                const tx = db.transaction('notes', 'readwrite');
+                const store = tx.objectStore('notes');
+                
+                for (const remoteNote of updatesToLocal) {
+                    store.put({
+                        id: remoteNote.id,
+                        title: remoteNote.title,
+                        content: remoteNote.content,
+                        tags: remoteNote.tags,
+                        color: remoteNote.color,
+                        isFavorite: remoteNote.is_favorite,
+                        updatedAt: remoteNote.updated_at
+                    });
+                }
+                await transactionToPromise(tx);
+            }
+
+            // 4. Aplicar actualizaciones remotas (Batch Upsert)
+            if (updatesToRemote.length > 0) {
+                // Aseguramos que el objeto esté limpio y tenga user_id
+                // IMPORTANTE: La tabla 'notes' en Supabase debe tener RLS habilitado para seguridad.
+                const cleanNotes = updatesToRemote.map(note => ({
+                    id: note.id,
+                    user_id: session.user.id,
+                    title: note.title,
+                    content: note.content,
+                    tags: note.tags,
+                    color: note.color,
+                    is_favorite: note.isFavorite || false,
+                    updated_at: note.updatedAt || new Date().toISOString()
+                }));
+
+                const { error: upsertError } = await supabaseClient
+                    .from('notes')
+                    .upsert(cleanNotes);
+                
+                if (upsertError) throw upsertError;
+            }
+
+            showSupabaseStatus('Sincronización completada', 'success');
+            if (typeof renderNotes === 'function') renderNotes();
+        } catch (error) {
+            console.error('Error de sincronización:', error);
+            showSupabaseStatus('Error de sincronización', 'error');
+        }
+    };
+
+    const backupNoteToSupabase = async (note) => {
+        if (!supabaseClient) return;
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        try {
+            await supabaseClient.from('notes').upsert({
+                id: note.id,
+                user_id: session.user.id,
+                title: note.title,
+                content: note.content,
+                tags: note.tags,
+                color: note.color,
+                is_favorite: note.isFavorite || false,
+                updated_at: new Date().toISOString()
+            });
+        } catch (error) {
+            console.warn('No se pudo respaldar en la nube (offline):', error);
+        }
+    };
+
+    const deleteNoteFromSupabase = async (id) => {
+        if (!supabaseClient) return;
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        try {
+            await supabaseClient.from('notes').delete().eq('id', id);
+        } catch (error) {
+            console.warn('No se pudo eliminar de la nube:', error);
+        }
     };
 
     function isSettingsStoreReady() {
@@ -1660,9 +1887,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const store = tx.objectStore('notes');
         if (noteIdToEdit !== null && noteIdToEdit !== noteTimestamp) {
             store.delete(noteIdToEdit);
+            deleteNoteFromSupabase(noteIdToEdit);
         }
-        store.put({ id: noteTimestamp, title: title || 'Nota sin título', content, tags: selectedTags });
+        const noteData = { id: noteTimestamp, title: title || 'Nota sin título', content, tags: selectedTags, updatedAt: new Date().toISOString() };
+        store.put(noteData);
         tx.oncomplete = () => {
+            backupNoteToSupabase(noteData);
             resetForm();
             refreshActiveView();
         };
@@ -2049,6 +2279,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Event Listeners ---
+    document.getElementById('supabase-login-btn')?.addEventListener('click', handleSupabaseLogin);
+    document.getElementById('supabase-signup-btn')?.addEventListener('click', handleSupabaseSignup);
+    document.getElementById('supabase-logout-btn')?.addEventListener('click', handleSupabaseLogout);
+    document.getElementById('supabase-sync-now-btn')?.addEventListener('click', syncWithSupabase);
+
     if (showNoteFormBtn) showNoteFormBtn.addEventListener('click', showNoteFormModal);
     if (closeNoteModalBtn) closeNoteModalBtn.addEventListener('click', resetForm);
     if (saveNoteBtn) saveNoteBtn.addEventListener('click', saveNote);
@@ -2264,7 +2499,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (e.target.dataset.action === 'confirm') {
                 if (modal.id === 'delete-one-modal' && noteIdToDelete) {
-                    db.transaction('notes', 'readwrite').objectStore('notes').delete(noteIdToDelete).onsuccess = refreshActiveView;
+                    db.transaction('notes', 'readwrite').objectStore('notes').delete(noteIdToDelete).onsuccess = () => {
+                        deleteNoteFromSupabase(noteIdToDelete);
+                        refreshActiveView();
+                    };
                     noteIdToDelete = null;
                 } else if (modal.id === 'delete-all-modal') {
                     clearAllData();
@@ -2273,4 +2511,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Inicializar UI de Supabase si existe el cliente
+    if (supabaseClient) {
+        updateSupabaseUI();
+        // Sincronización periódica o al cargar
+        setTimeout(syncWithSupabase, 1000);
+    }
 });
