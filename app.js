@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const seconds = Math.floor(ms / 1000);
         const minutes = Math.floor(seconds / 60);
         const hours = Math.floor(minutes / 60);
-        
+
         if (hours > 0) {
             const remainingMinutes = minutes % 60;
             return `${hours}h ${remainingMinutes}m`;
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateSessionMetrics = () => {
         const totalSessionTimeEl = document.getElementById('total-session-time');
         const averageSessionTimeEl = document.getElementById('average-session-time');
-        
+
         if (!totalSessionTimeEl && !averageSessionTimeEl) return;
         if (!db) return;
 
@@ -852,8 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (!url.startsWith('https://discord.com/api/webhooks/')) {
-             showWebhookStatus('La URL no parece ser un Webhook de Discord válido.', 'error');
-             return;
+            showWebhookStatus('La URL no parece ser un Webhook de Discord válido.', 'error');
+            return;
         }
 
         const tx = db.transaction(SETTINGS_STORE, 'readwrite');
@@ -899,15 +899,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'success') supabaseStatusEl.classList.add('text-green-600');
         else if (type === 'error') supabaseStatusEl.classList.add('text-red-600');
         else supabaseStatusEl.classList.add('text-blue-600');
-        
+
         setTimeout(() => supabaseStatusEl.classList.add('hidden'), 5000);
     };
 
     const updateSupabaseUI = async () => {
         if (!supabaseClient || !supabaseLoggedInEl || !supabaseLoggedOutEl) return;
-        
+
         const { data: { session } } = await supabaseClient.auth.getSession();
-        
+
         if (session) {
             supabaseLoggedInEl.classList.remove('hidden');
             supabaseLoggedOutEl.classList.add('hidden');
@@ -921,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleSupabaseLogin = async () => {
         const email = document.getElementById('supabase-email')?.value;
         const password = document.getElementById('supabase-password')?.value;
-        
+
         if (!email || !password) {
             showSupabaseStatus('Email y contraseña requeridos', 'error');
             return;
@@ -929,7 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showSupabaseStatus('Iniciando sesión...');
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        
+
         if (error) {
             showSupabaseStatus('Error: ' + error.message, 'error');
         } else {
@@ -942,7 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleSupabaseSignup = async () => {
         const email = document.getElementById('supabase-email')?.value;
         const password = document.getElementById('supabase-password')?.value;
-        
+
         if (!email || !password) {
             showSupabaseStatus('Email y contraseña requeridos', 'error');
             return;
@@ -950,7 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showSupabaseStatus('Creando cuenta...');
         const { error } = await supabaseClient.auth.signUp({ email, password });
-        
+
         if (error) {
             showSupabaseStatus('Error: ' + error.message, 'error');
         } else {
@@ -966,108 +966,283 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const syncWithSupabase = async () => {
         if (!supabaseClient || !db) return;
-        
+
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session) return;
 
-        showSupabaseStatus('Sincronizando (Bidireccional)...');
+        showSupabaseStatus('Sincronizando todo...', 'info');
 
         try {
-            // 1. Obtener notas remotas
-            const { data: remoteNotes, error: remoteError } = await supabaseClient
-                .from('notes')
-                .select('*');
+            await Promise.all([
+                syncNotes(session.user.id),
+                syncTags(session.user.id),
+                syncSessions(session.user.id),
+                syncSettings(session.user.id)
+            ]);
 
-            if (remoteError) throw remoteError;
-
-            // 2. Obtener notas locales (Solo lectura inicial)
-            const localNotes = await requestToPromise(
-                db.transaction('notes', 'readonly').objectStore('notes').getAll()
-            );
-
-            // Mapas para acceso rápido por ID
-            const remoteMap = new Map(remoteNotes.map(n => [n.id, n]));
-            const localMap = new Map(localNotes.map(n => [n.id, n]));
-
-            // Conjunto de todos los IDs únicos
-            const allIds = new Set([...remoteMap.keys(), ...localMap.keys()]);
-
-            const updatesToRemote = [];
-            const updatesToLocal = [];
-
-            for (const id of allIds) {
-                const remote = remoteMap.get(id);
-                const local = localMap.get(id);
-
-                if (remote && local) {
-                    // Ambos existen: Comparar timestamps (Last Write Wins)
-                    // Usamos 0 si no hay fecha para forzar actualización
-                    const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
-                    const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-
-                    if (localTime > remoteTime) {
-                        // Gana Local -> Subir a Nube
-                        updatesToRemote.push(local);
-                    } else if (remoteTime > localTime) {
-                        // Gana Remota -> Actualizar Local
-                        updatesToLocal.push(remote);
-                    }
-                    // Si son iguales, no hacemos nada
-                } else if (local && !remote) {
-                    // Solo local -> Subir a Nube
-                    updatesToRemote.push(local);
-                } else if (remote && !local) {
-                    // Solo remoto -> Descargar a Local
-                    updatesToLocal.push(remote);
-                }
-            }
-
-            // 3. Aplicar actualizaciones locales (Nueva transacción de escritura)
-            if (updatesToLocal.length > 0) {
-                const tx = db.transaction('notes', 'readwrite');
-                const store = tx.objectStore('notes');
-                
-                for (const remoteNote of updatesToLocal) {
-                    store.put({
-                        id: remoteNote.id,
-                        title: remoteNote.title,
-                        content: remoteNote.content,
-                        tags: remoteNote.tags,
-                        color: remoteNote.color,
-                        isFavorite: remoteNote.is_favorite,
-                        updatedAt: remoteNote.updated_at
-                    });
-                }
-                await transactionToPromise(tx);
-            }
-
-            // 4. Aplicar actualizaciones remotas (Batch Upsert)
-            if (updatesToRemote.length > 0) {
-                // Aseguramos que el objeto esté limpio y tenga user_id
-                // IMPORTANTE: La tabla 'notes' en Supabase debe tener RLS habilitado para seguridad.
-                const cleanNotes = updatesToRemote.map(note => ({
-                    id: note.id,
-                    user_id: session.user.id,
-                    title: note.title,
-                    content: note.content,
-                    tags: note.tags,
-                    color: note.color,
-                    is_favorite: note.isFavorite || false,
-                    updated_at: note.updatedAt || new Date().toISOString()
-                }));
-
-                const { error: upsertError } = await supabaseClient
-                    .from('notes')
-                    .upsert(cleanNotes);
-                
-                if (upsertError) throw upsertError;
-            }
-
-            showSupabaseStatus('Sincronización completada', 'success');
-            if (typeof renderNotes === 'function') renderNotes();
+            showSupabaseStatus('Sincronización completa', 'success');
+            refreshActiveView();
         } catch (error) {
-            console.error('Error de sincronización:', error);
-            showSupabaseStatus('Error de sincronización', 'error');
+            console.error('Error de sincronización global:', error);
+            showSupabaseStatus('Error en sincronización', 'error');
+        }
+    };
+
+    const syncNotes = async (userId) => {
+        // 1. Obtener notas remotas
+        const { data: remoteNotes, error: remoteError } = await supabaseClient
+            .from('notes')
+            .select('*');
+
+        if (remoteError) throw remoteError;
+
+        // 2. Obtener notas locales
+        const localNotes = await requestToPromise(
+            db.transaction('notes', 'readonly').objectStore('notes').getAll()
+        );
+
+        const remoteMap = new Map(remoteNotes.map(n => [Number(n.id), n]));
+        const localMap = new Map(localNotes.map(n => [n.id, n]));
+        const allIds = new Set([...remoteMap.keys(), ...localMap.keys()]);
+        const updatesToRemote = [];
+        const updatesToLocal = [];
+
+        for (const id of allIds) {
+            const remote = remoteMap.get(id);
+            const local = localMap.get(id);
+
+            if (remote && local) {
+                const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
+                const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+                if (localTime > remoteTime) updatesToRemote.push(local);
+                else if (remoteTime > localTime) updatesToLocal.push(remote);
+            } else if (local && !remote) {
+                updatesToRemote.push(local);
+            } else if (remote && !local) {
+                updatesToLocal.push(remote);
+            }
+        }
+
+        if (updatesToLocal.length > 0) {
+            const tx = db.transaction('notes', 'readwrite');
+            const store = tx.objectStore('notes');
+            for (const remoteNote of updatesToLocal) {
+                store.put({
+                    id: Number(remoteNote.id),
+                    title: remoteNote.title,
+                    content: remoteNote.content,
+                    tags: remoteNote.tags,
+                    color: remoteNote.color,
+                    isFavorite: remoteNote.is_favorite,
+                    updatedAt: remoteNote.updated_at
+                });
+            }
+            await transactionToPromise(tx);
+        }
+
+        if (updatesToRemote.length > 0) {
+            const cleanNotes = updatesToRemote.map(note => ({
+                id: note.id,
+                user_id: userId,
+                title: note.title,
+                content: note.content,
+                tags: note.tags,
+                color: note.color,
+                is_favorite: note.isFavorite || false,
+                updated_at: note.updatedAt || new Date().toISOString()
+            }));
+            const { error: upsertError } = await supabaseClient.from('notes').upsert(cleanNotes);
+            if (upsertError) throw upsertError;
+        }
+    };
+
+    const syncTags = async (userId) => {
+        const { data: remoteTags, error } = await supabaseClient.from('tags').select('*');
+        if (error) throw error;
+        const localTags = await requestToPromise(db.transaction('tags', 'readonly').objectStore('tags').getAll());
+
+        const remoteMap = new Map(remoteTags.map(t => [t.name, t]));
+        const localMap = new Map(localTags.map(t => [t.name, t]));
+        const allNames = new Set([...remoteMap.keys(), ...localMap.keys()]);
+
+        const toRemote = [];
+        const toLocal = [];
+
+        for (const name of allNames) {
+            const remote = remoteMap.get(name);
+            const local = localMap.get(name);
+
+            if (remote && local) {
+                const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
+                const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+                // Si no hay timestamp local, asumimos que es viejo o usamos fecha actual si queremos priorizarlo?
+                // Mejor: si local no tiene timestamp, lo subimos para que tenga.
+                if (localTime >= remoteTime) toRemote.push(local);
+                else toLocal.push(remote);
+            } else if (local && !remote) {
+                toRemote.push(local);
+            } else if (remote && !local) {
+                toLocal.push(remote);
+            }
+        }
+
+        if (toLocal.length > 0) {
+            const tx = db.transaction('tags', 'readwrite');
+            const store = tx.objectStore('tags');
+            for (const t of toLocal) {
+                store.put({
+                    name: t.name,
+                    color: t.color,
+                    order: t.order || 0,
+                    updatedAt: t.updated_at
+                });
+            }
+            await transactionToPromise(tx);
+        }
+
+        if (toRemote.length > 0) {
+            const cleanTags = toRemote.map(t => ({
+                user_id: userId,
+                name: t.name,
+                color: t.color,
+                order: t.order || 0,
+                updated_at: t.updatedAt || new Date().toISOString()
+            }));
+            // Upsert necesita conflict en (user_id, name)
+            const { error: upError } = await supabaseClient.from('tags').upsert(cleanTags, { onConflict: 'user_id,name' });
+            if (upError) throw upError;
+        }
+    };
+
+    const syncSessions = async (userId) => {
+        if (!db.objectStoreNames.contains('sessions')) return;
+        const { data: remoteSessions, error } = await supabaseClient.from('sessions').select('*');
+        if (error) throw error;
+        const localSessions = await requestToPromise(db.transaction('sessions', 'readonly').objectStore('sessions').getAll());
+
+        // Usar start_time como identificador único lógico
+        const remoteMap = new Map(remoteSessions.map(s => [Number(s.start_time), s]));
+        const localMap = new Map(localSessions.map(s => [Number(s.startTime), s]));
+
+        const toRemote = [];
+        const toLocal = []; // Sesiones son append-only generalmente, pero sincronizamos igual
+
+        // 1. Local que no está en remoto -> Subir
+        localSessions.forEach(local => {
+            if (!remoteMap.has(Number(local.startTime))) {
+                toRemote.push(local);
+            }
+        });
+
+        // 2. Remoto que no está en local -> Bajar
+        remoteSessions.forEach(remote => {
+            if (!localMap.has(Number(remote.start_time))) {
+                toLocal.push(remote);
+            }
+        });
+
+        if (toLocal.length > 0) {
+            const tx = db.transaction('sessions', 'readwrite');
+            const store = tx.objectStore('sessions');
+            for (const s of toLocal) {
+                store.add({
+                    startTime: s.start_time,
+                    endTime: s.end_time,
+                    duration: s.duration,
+                    date: s.date
+                }); // ID se autogenera
+            }
+            await transactionToPromise(tx);
+        }
+
+        if (toRemote.length > 0) {
+            const cleanSessions = toRemote.map(s => ({
+                user_id: userId,
+                start_time: s.startTime,
+                end_time: s.endTime,
+                duration: s.duration,
+                date: s.date,
+                updated_at: new Date().toISOString()
+            }));
+            const { error: insError } = await supabaseClient.from('sessions').insert(cleanSessions);
+            if (insError) console.warn('Error insertando sesiones:', insError);
+        }
+    };
+
+    const getAllSettings = async () => {
+        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return {};
+        const tx = db.transaction(SETTINGS_STORE, 'readonly');
+        const store = tx.objectStore(SETTINGS_STORE);
+        const allSettings = await requestToPromise(store.getAll());
+        return allSettings.reduce((acc, item) => {
+            acc[item.key] = item.value;
+            return acc;
+        }, {});
+    };
+
+    const saveSettingsFromObject = async (settingsObject) => {
+        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+        const store = tx.objectStore(SETTINGS_STORE);
+        for (const key in settingsObject) {
+            if (Object.prototype.hasOwnProperty.call(settingsObject, key)) {
+                store.put({ key: key, value: settingsObject[key] });
+            }
+        }
+        await transactionToPromise(tx);
+    };
+
+    const syncSettings = async (userId) => {
+        // Estrategia: "Merge inteligente". Si remoto existe, mezclamos.
+        // 1. Obtener perfil remoto
+        const { data: profile, error } = await supabaseClient
+            .from('profiles')
+            .select('settings, updated_at')
+            .eq('id', userId)
+            .single();
+
+        const localSettings = await getAllSettings();
+
+        if (!profile || !profile.settings) {
+            // No existe remoto -> Subir local
+            const { error: upError } = await supabaseClient
+                .from('profiles')
+                .upsert({
+                    id: userId,
+                    settings: localSettings,
+                    updated_at: new Date().toISOString()
+                });
+            if (upError) console.error('Error subiendo ajustes:', upError);
+        } else {
+            // Existe remoto.
+            // Si local está vacío (primera vez o borrado), bajamos.
+            // Si local tiene cosas, comparamos timestamps?... No tengo timestamp local global.
+            // Asumo remoto gana si hay conflicto porque es "backup".
+            // Pero preservamos cosas locales si no están en remoto?
+            // "settings" es un JSONB completo.
+
+            const remoteSettings = profile.settings;
+            // Mezclar
+            const merged = { ...remoteSettings, ...localSettings };
+            // Esto sobrescribe remoto con local... 
+            // Queremos restaurar lo remoto si "importar" es la intención.
+            // Pero "sincronizar" implica lo más nuevo.
+            // VAMOS A PRIORIZAR REMOTO para campos que existan.
+
+            const finalSettings = { ...localSettings, ...remoteSettings }; // Remoto sobrescribe local
+
+            // Guardar en IDB
+            await saveSettingsFromObject(finalSettings);
+
+            // Si local tenía cosas que remoto no, deberíamos actualizar remoto?
+            // Sí, para completar el backup.
+            const { error: upError } = await supabaseClient
+                .from('profiles')
+                .update({
+                    settings: finalSettings,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId);
         }
     };
 
@@ -1396,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tagStore.count().onsuccess = (e) => {
             const newOrder = e.target.result;
-            tagStore.add({ name: tagName, color: tagColor, order: newOrder }).onsuccess = () => {
+            tagStore.add({ name: tagName, color: tagColor, order: newOrder, updatedAt: new Date().toISOString() }).onsuccess = () => {
                 newTagInput.value = '';
                 renderTags();
                 populateMultiSelectDropdown();
@@ -1413,7 +1588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tagStore.get(oldName).onsuccess = (e) => {
             const oldTag = e.target.result;
             tagStore.delete(oldName);
-            tagStore.add({ name: newName, color: newColor, order: oldTag.order });
+            tagStore.add({ name: newName, color: newColor, order: oldTag.order, updatedAt: new Date().toISOString() });
 
             if (oldName !== newName) {
                 noteStore.openCursor().onsuccess = eCursor => {
@@ -1436,6 +1611,8 @@ document.addEventListener('DOMContentLoaded', () => {
             refreshActiveView();
         };
     };
+
+
 
     const startEditingTag = (tagEl) => {
         tagEl.draggable = false;
@@ -1948,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
             const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
-            
+
             const stores = ['notes', 'tags'];
             if (hasSettingsStore) stores.push(SETTINGS_STORE);
             if (hasSessionsStore) stores.push(SESSIONS_STORE);
@@ -2014,7 +2191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showUserNameStatus('La base de datos aún no está lista.', 'error');
             return;
         }
-        
+
         // Cambiar texto del botón para feedback visual
         const originalBtnContent = exportDiscordBtn.innerHTML;
         exportDiscordBtn.disabled = true;
@@ -2081,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = new File([blob], `notas-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
 
             const formData = new FormData();
-            
+
             // Payload JSON para el mensaje embed
             const payloadJson = {
                 username: "Notas App Backup",
@@ -2160,7 +2337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
         const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
-        
+
         const stores = ['notes', 'tags'];
         if (hasSettingsStore) stores.push(SETTINGS_STORE);
         if (hasSessionsStore) stores.push(SESSIONS_STORE);
@@ -2240,17 +2417,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const clearAllData = () => {
+    const clearAllData = async () => {
         if (!db) return;
-        const tx = db.transaction(['notes', 'tags'], 'readwrite');
-        tx.objectStore('notes').clear();
-        tx.objectStore('tags').clear();
+
+        // 1. Identificar almacenes a limpiar
+        const stores = ['notes', 'tags'];
+        if (db.objectStoreNames.contains(SETTINGS_STORE)) stores.push(SETTINGS_STORE);
+        if (db.objectStoreNames.contains(SESSIONS_STORE)) stores.push(SESSIONS_STORE);
+
+        // 2. Transacción de limpieza local
+        const tx = db.transaction(stores, 'readwrite');
+        stores.forEach(storeName => {
+            tx.objectStore(storeName).clear();
+        });
+
         tx.oncomplete = () => {
+            // 3. Resetear variables en memoria
+            currentThemePreference = DEFAULT_THEME;
+            applyTheme(currentThemePreference);
+
+            // Limpiar inputs UI
+            if (userNameInput) userNameInput.value = '';
+            if (birthdayMonthSelect) birthdayMonthSelect.value = '';
+            if (birthdayDayInput) birthdayDayInput.value = '';
+            if (discordWebhookInput) discordWebhookInput.value = '';
+            if (noteCountEl) noteCountEl.textContent = '0';
+            if (tagCountEl) tagCountEl.textContent = '0';
+
             refreshActiveView();
             renderTags();
             populateMultiSelectDropdown();
             updateStorageInfo();
+            showUserNameStatus('Todos los datos locales han sido eliminados.', 'success');
         };
+    };
+
+    const deleteAllRemoteData = async () => {
+        if (!supabaseClient) return;
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        const userId = session.user.id;
+        showSupabaseStatus('Eliminando datos en la nube...', 'info');
+
+        try {
+            const promises = [
+                supabaseClient.from('notes').delete().eq('user_id', userId),
+                supabaseClient.from('tags').delete().eq('user_id', userId),
+            ];
+
+            // Opcional: tabla sessions si existe
+            const { error: sessionCheck } = await supabaseClient.from('sessions').select('id').limit(1);
+            if (!sessionCheck) {
+                promises.push(supabaseClient.from('sessions').delete().eq('user_id', userId));
+            }
+
+            // Para profiles, no borramos la fila entera para no romper auth, solo limpiamos settings
+            promises.push(
+                supabaseClient.from('profiles').update({ settings: {} }).eq('id', userId)
+            );
+
+            await Promise.all(promises);
+            showSupabaseStatus('Todos los datos en la nube han sido eliminados.', 'success');
+        } catch (error) {
+            console.error('Error eliminando datos remotos:', error);
+            showSupabaseStatus('Error al eliminar datos en la nube.', 'error');
+        }
     };
 
     const showNoteFormModal = () => {
@@ -2293,7 +2525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         importFileInput.addEventListener('change', handleImportFileSelection);
     }
     if (exportNotesBtn) exportNotesBtn.addEventListener('click', exportData);
-    if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => showModal(deleteAllModal));
+    // if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', () => showModal(deleteAllModal)); // Movido a lógica personalizada arriba
     if (saveBirthdayBtn) saveBirthdayBtn.addEventListener('click', saveBirthday);
     if (clearBirthdayBtn) clearBirthdayBtn.addEventListener('click', clearBirthday);
     if (saveUserNameBtn) saveUserNameBtn.addEventListener('click', saveUserName);
@@ -2326,7 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!db || sessionSaved) return;
         const endTime = Date.now();
         const duration = endTime - sessionStartTime;
-        
+
         // Ignorar sesiones menores a 1 segundo para evitar ruido
         if (duration < 1000) return;
 
@@ -2338,7 +2570,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     startTime: sessionStartTime,
                     endTime: endTime,
                     duration: duration,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
                 });
                 sessionSaved = true;
                 // console.log('Sesión guardada:', duration, 'ms');
@@ -2493,7 +2726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     [deleteOneModal, deleteAllModal].filter(Boolean).forEach(modal => {
-        modal.addEventListener('click', (e) => {
+        modal.addEventListener('click', async (e) => {
             if (e.target === modal || e.target.dataset.action === 'cancel') {
                 hideModal(modal);
             }
@@ -2505,12 +2738,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     noteIdToDelete = null;
                 } else if (modal.id === 'delete-all-modal') {
-                    clearAllData();
+                    const deleteCloud = document.getElementById('delete-cloud-data-checkbox')?.checked;
+
+                    // Borrado local siempre ocurre
+                    await clearAllData();
+
+                    // Borrado remoto opcional
+                    if (deleteCloud) {
+                        await deleteAllRemoteData();
+                    }
                 }
                 hideModal(modal);
             }
         });
     });
+
+    // Mostrar modal con opción de nube condicional
+    if (clearAllDataBtn) {
+        // Remover listener anterior si existiera, o sobreescribir lógica
+        // Mejor agregar listener nuevo que maneje la UI previa
+        clearAllDataBtn.removeEventListener('click', () => showModal(deleteAllModal)); // Intento de limpieza defensiva
+
+        clearAllDataBtn.addEventListener('click', async () => {
+            const cloudOption = document.getElementById('cloud-delete-option');
+            const checkbox = document.getElementById('delete-cloud-data-checkbox');
+
+            if (cloudOption && checkbox) {
+                // Verificar sesión
+                if (supabaseClient) {
+                    const { data } = await supabaseClient.auth.getSession();
+                    if (data?.session) {
+                        cloudOption.classList.remove('hidden');
+                        checkbox.checked = false; // Resetear
+                    } else {
+                        cloudOption.classList.add('hidden');
+                    }
+                } else {
+                    cloudOption.classList.add('hidden');
+                }
+            }
+            showModal(deleteAllModal);
+        });
+    }
 
     // Inicializar UI de Supabase si existe el cliente
     if (supabaseClient) {
