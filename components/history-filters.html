@@ -1,0 +1,41 @@
+<!-- FILTROS DE HISTORIAL -->
+<section id="history-filters" class="history-filters-grid px-6 py-6 mb-10">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/15 to-purple-500/15 text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-filter">
+                    <path d="m9 18 6-6-6-6-6"/>
+                </svg>
+            </span>
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Filtrar por etiquetas</h2>
+                <p class="text-sm text-slate-500">Selecciona una o varias etiquetas para refinar el historial.</p>
+            </div>
+        </div>
+        <div class="w-full md:w-auto">
+            <div class="relative" id="tag-filter-wrapper">
+                <button id="tag-filter-toggle" type="button" class="w-full md:w-80 flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none">
+                    <span id="tag-filter-toggle-label" class="truncate">Selecciona etiquetas…</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+                <div id="tag-filter-dropdown" class="tag-filter-dropdown absolute z-20 mt-2 w-full md:w-80 rounded-2xl border border-slate-200 bg-white shadow-xl p-4 space-y-3" data-open="false">
+                    <div id="tag-filter-empty" class="hidden text-sm text-slate-500 text-center py-3">
+                        Aún no tienes etiquetas disponibles. Agrega etiquetas en la sección de notas.
+                    </div>
+                    <div id="tag-filter-options" class="hidden max-h-60 overflow-y-auto space-y-2"></div>
+                    <div id="tag-filter-selected-empty" class="hidden text-sm text-slate-500 text-center py-3">
+                        Selecciona etiquetas para filtrar.
+                    </div>
+                    <div class="flex justify-between gap-2 pt-2 border-t border-slate-200">
+                        <button id="tag-filter-clear" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 border border-slate-200 hover:bg-slate-100">Limpiar selección</button>
+                        <button id="tag-filter-apply" type="button" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700">Aplicar</button>
+                    </div>
+                </div>
+                <div id="tag-filter-summary" class="mt-3 hidden flex flex-wrap gap-2">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `notes-app-${CACHE_VERSION}`;
 
 const LOCAL_RESOURCES = [

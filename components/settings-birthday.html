@@ -1,0 +1,40 @@
+<div class="bg-white p-6 rounded-2xl shadow-lg mb-6">
+    <h2 class="text-2xl font-semibold mb-4">Cumpleaños</h2>
+    <div class="space-y-4">
+        <div class="flex flex-col md:flex-row md:items-end gap-4">
+            <div class="flex-1">
+                <label for="birthday-month" class="block text-sm font-medium text-slate-600 mb-1">Mes</label>
+                <select id="birthday-month"
+                    class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Selecciona un mes</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <label for="birthday-day" class="block text-sm font-medium text-slate-600 mb-1">Día</label>
+                <input id="birthday-day" type="number" min="1" max="31" placeholder="Día"
+                    class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <button id="save-birthday-btn"
+                class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-[1.02]">Guardar
+                Cumpleaños</button>
+            <button id="clear-birthday-btn"
+                class="bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-transform transform hover:scale-[1.02]">Borrar
+                Registro</button>
+        </div>
+        <p id="birthday-status" class="text-sm text-slate-500"></p>
+    </div>
+</div>

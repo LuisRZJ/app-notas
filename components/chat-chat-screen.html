@@ -1,0 +1,43 @@
+<!-- Pantalla de Chat -->
+<div id="chat-screen" class="hidden w-full h-full relative" role="region" aria-labelledby="chat-screen-heading">
+    <header class="chat-header bg-orange-100/75 backdrop-blur-md text-orange-900 p-4 border-b border-orange-200 flex items-center justify-between gap-4 shadow-sm absolute top-0 left-0 right-0 z-10">
+         <div class="flex items-center gap-4">
+            <button id="back-to-home-btn" class="p-2 rounded-full hover:bg-orange-200 transition-colors" type="button" aria-label="Volver al historial de chats">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <div>
+                <h1 id="chat-screen-heading" class="text-xl font-bold">Chat IA</h1>
+                <p class="text-sm text-orange-600 font-mono" id="status" role="status" aria-live="polite">Conectado y listo</p>
+            </div>
+        </div>
+    </header>
+
+    <main id="chat-messages" class="chat-container h-full bg-orange-50/50 overflow-y-auto scrollable-content pt-24 pb-24 px-6" role="log" aria-live="polite" aria-label="Mensajes del chat">
+         <div class="space-y-4">
+            <!-- Los mensajes se agregarán aquí dinámicamente -->
+        </div>
+    </main>
+
+    <footer class="input-section p-4 border-t border-orange-200 bg-orange-100/75 backdrop-blur-md absolute bottom-0 left-0 right-0 z-10">
+        <div class="input-container flex items-center gap-4">
+            <input type="text" id="user-input" placeholder="Escribe tu mensaje aquí..." class="flex-1 bg-white text-gray-800 rounded-full px-5 py-3 focus:ring-2 focus:ring-orange-500 focus:outline-none transition-shadow duration-300 border border-orange-200" aria-label="Mensaje para enviar">
+            <button id="send-btn" class="bg-orange-500 hover:bg-orange-600 text-white rounded-full p-3 flex items-center justify-center transition-transform duration-200 active:scale-90 disabled:bg-orange-300 disabled:cursor-not-allowed" type="button" aria-label="Enviar mensaje">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </footer>
+</div>
+
+<template id="typing-indicator-template">
+    <div class="pb-4">
+         <div class="message ai-message flex flex-col items-start">
+            <div class="message-bubble bg-orange-100 text-orange-800 p-4 rounded-2xl rounded-bl-lg max-w-lg">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                    <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                    <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

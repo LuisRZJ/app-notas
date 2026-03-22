@@ -1,0 +1,158 @@
+<section aria-labelledby="stats-overview-heading" class="mb-12">
+    <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+        <div>
+            <h2 id="stats-overview-heading" class="text-2xl font-semibold text-slate-900">Resumen general</h2>
+            <p class="text-sm text-slate-500">Métricas clave de tu diario digital.</p>
+        </div>
+        <span id="stats-last-update" class="text-xs font-medium text-slate-500 bg-slate-200 px-3 py-1 rounded-full" title="Última actualización disponible">Actualizado: --</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-pen">
+                            <path d="m15 4 1 1 3-3a2 2 0 0 0-3-3l-3 3z"/>
+                            <path d="M10 9l6-6"/>
+                            <path d="M11 4H7a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h10a2 2 0 0 0 2-2V9"/>
+                        </svg>
+                        Total de notas
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #1</span>
+                </div>
+                <p id="total-notes-count" class="text-4xl font-bold text-slate-900">0</p>
+                <p class="text-sm text-slate-500 mt-3">Cantidad total de entradas registradas.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-clock">
+                            <path d="M21 7v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7"/>
+                            <path d="M16 3v4"/>
+                            <path d="M8 3v4"/>
+                            <path d="M3 11h18"/>
+                            <circle cx="12" cy="16" r="3"/>
+                            <path d="m12 14 1 1-1 1"/>
+                        </svg>
+                        Promedio semanal
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #2</span>
+                </div>
+                <p id="average-notes-per-week" class="text-4xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Notas creadas en promedio cada semana.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hourglass">
+                            <path d="M19 18H5"/>
+                            <path d="M5 3h14"/>
+                            <path d="M6 3a6 6 0 0 0 12 0"/>
+                            <path d="M6 18a6 6 0 0 1 12 0"/>
+                        </svg>
+                        Edad del diario
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #3</span>
+                </div>
+                <p id="journal-age" class="text-2xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Tiempo transcurrido desde tu primera nota.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-left">
+                            <path d="M21 6H3"/>
+                            <path d="M15 12H3"/>
+                            <path d="M17 18H3"/>
+                        </svg>
+                        Palabras por nota
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #4</span>
+                </div>
+                <p id="average-words-per-note" class="text-3xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Promedio de palabras escritas por nota.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tags">
+                            <path d="M3 6v6a2 2 0 0 0 .59 1.41l7 7a2 2 0 0 0 2.82 0l6-6a2 2 0 0 0 0-2.82l-7-7A2 2 0 0 0 11 3H5a2 2 0 0 0-2 2Z"/>
+                            <path d="M7.5 7.5h.01"/>
+                        </svg>
+                        Etiquetas por nota
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #5</span>
+                </div>
+                <p id="average-tags-per-note" class="text-3xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Promedio de etiquetas asociadas a cada nota.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sunrise">
+                            <path d="M3 17h18"/>
+                            <path d="M12 5V2"/>
+                            <path d="m4.22 10.22 1.42-1.42"/>
+                            <path d="M1 17h22"/>
+                            <path d="m19.78 10.22-1.42-1.42"/>
+                            <path d="M12 9a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4Z"/>
+                        </svg>
+                        Franja más activa
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #6</span>
+                </div>
+                <p id="top-time-range" class="text-2xl font-bold text-slate-900">--:-- - --:--</p>
+                <p id="top-time-range-count" class="text-sm text-slate-500 mt-3">Notas registradas en la franja: --</p>
+            </div>
+        </article>
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-timer">
+                            <line x1="10" x2="14" y1="2" y2="2"/>
+                            <line x1="12" x2="15" y1="14" y2="11"/>
+                            <circle cx="12" cy="14" r="8"/>
+                        </svg>
+                        Tiempo total
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #7</span>
+                </div>
+                <p id="total-session-time" class="text-2xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Tiempo total acumulado en la aplicación.</p>
+            </div>
+        </article>
+
+        <article class="stat-card p-6 border border-slate-200/60 shadow-md">
+            <div class="stat-card-content">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 stat-highlight px-3 py-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        Tiempo medio
+                    </span>
+                    <span class="text-xs font-medium text-slate-400">Ítem #8</span>
+                </div>
+                <p id="average-session-time" class="text-2xl font-bold text-slate-900">--</p>
+                <p class="text-sm text-slate-500 mt-3">Duración promedio de tus sesiones.</p>
+            </div>
+        </article>
+    </div>
+</section>

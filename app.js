@@ -37,7 +37,7 @@ window.addEventListener('appinstalled', () => {
     hideInstallButton();
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('componentsLoaded', () => {
     const pageType = document.body.dataset.page || 'notes';
     // Elementos UI
     const saveNoteBtn = document.getElementById('save-note-btn');

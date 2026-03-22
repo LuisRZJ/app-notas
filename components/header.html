@@ -1,0 +1,30 @@
+<!-- HEADER CON SALUDO Y BANNER -->
+<header class="text-center mb-8">
+    <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Notas</h1>
+    <p class="text-slate-500 mt-2">Un lugar simple para los registros.</p>
+    <p id="user-greeting" class="mt-4 text-xl font-semibold">Hola, Usuario</p>
+    <div class="mt-4 flex justify-center">
+        <a href="chat-ia.html" class="bg-white text-blue-600 border border-blue-300 hover:bg-blue-50 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H9l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg>
+            Chat IA
+        </a>
+    </div>
+    <div id="birthday-banner" class="hidden mt-6" aria-hidden="true">
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 text-white px-6 py-5 shadow-xl border border-white/30">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <span class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-party-popper">
+                        <path d="M5.8 11 2 22l11-3.8L22 2Z"/>
+                        <path d="M4 3l7 7"/>
+                        <path d="M22 2s-5 2.5-7 6-3 5-5 6-6 2-6 2"/>
+                    </svg>
+                </span>
+                <div class="text-center sm:text-left">
+                    <p id="birthday-message-heading" class="text-lg font-semibold leading-tight">¡Feliz cumpleaños!</p>
+                    <p id="birthday-message-text" class="mt-1 text-sm font-medium text-white/90">Que hoy sea un día lleno de inspiración y alegría.</p>
+                </div>
+            </div>
+            <div class="pointer-events-none select-none absolute -top-6 -right-2 text-6xl text-white/30">🎉</div>
+        </div>
+    </div>
+</header>

@@ -1,0 +1,27 @@
+<!-- Pantalla de Inicio (Historial de Chats) -->
+<div id="home-screen" class="w-full h-full flex flex-col" role="region" aria-labelledby="home-screen-heading">
+    <header class="chat-header bg-white p-4 border-b border-orange-200 flex items-center justify-between shadow-sm shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-gradient-to-tr from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white shrink-0">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12.85,3.62A10,10,0,0,0,8.3,2.85A10,10,0,0,0,3.62,12.85a9.93,9.93,0,0,0,.73,4.53,10,10,0,0,0,14.3,0A10,10,0,0,0,12.85,3.62ZM12,20a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"/><path d="M12,5.25A6.75,6.75,0,1,0,18.75,12,6.75,6.75,0,0,0,12,5.25ZM12,17.25A5.25,5.25,0,1,1,17.25,12,5.25,5.25,0,0,1,12,17.25Z"/><path d="M12,8.75a3.25,3.25,0,1,0,3.25,3.25A3.25,3.25,0,0,0,12,8.75Z"/></svg>
+            </div>
+            <h1 id="home-screen-heading" class="text-xl font-bold text-orange-900">Historial de Chats</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="index.html" class="bg-white text-orange-600 border border-orange-300 hover:bg-orange-100 font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7"/><path d="M9 22V12H15V22"/><path d="M12 2V5"/><path d="M21 10V22H3V10"/></svg>
+                Inicio
+            </a>
+            <button id="go-to-settings-btn" class="text-orange-600 hover:bg-orange-200 p-2 rounded-full transition-colors duration-200" type="button" aria-label="Abrir ajustes">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <button id="new-chat-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nuevo Chat
+            </button>
+        </div>
+    </header>
+    <main id="conversations-list" class="flex-1 p-6 overflow-y-auto space-y-3 bg-orange-50/50 scrollable-content">
+        <!-- La lista de conversaciones se renderizará aquí -->
+    </main>
+</div>

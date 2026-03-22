@@ -1,0 +1,126 @@
+<main class="space-y-8">
+    <section aria-labelledby="today-note-heading">
+        <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="today-note-heading" class="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+                        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-star">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                        </span>
+                        Nota del día
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">Una selección especial entre todas tus notas almacenadas.</p>
+                </div>
+                <span id="daily-note-tags" class="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-100 px-3 py-1 rounded-full hidden"></span>
+            </div>
+            <article class="mt-6 space-y-3" id="daily-note-card">
+                <h3 id="daily-note-title" class="text-xl font-semibold text-slate-800">Aún no hay nota destacada.</h3>
+                <p id="daily-note-content" class="text-slate-600">Pulsa en “Actualizar resumen” para obtener una recomendación.</p>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                    <span id="daily-note-date" class="inline-flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-4">
+                            <circle cx="12" cy="12" r="10"/><path d="m16 12-3.5 2.5v-5"/>
+                        </svg>
+                        <span>--</span>
+                    </span>
+                    <span id="daily-note-tags-list" class="inline-flex flex-wrap gap-1"></span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section aria-labelledby="idea-day-heading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="idea-day-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-purple-500/10 text-purple-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                            </svg>
+                        </span>
+                        Idea del día
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">Inspiración directa desde la API de Quotable.</p>
+                </div>
+                <span id="idea-day-author" class="text-xs font-medium text-slate-500 text-right"></span>
+            </div>
+            <blockquote id="idea-day-quote" class="mt-5 text-slate-700 italic quote">Aún no hay cita disponible.</blockquote>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <button id="idea-refresh-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition">Nueva cita</button>
+                <button id="idea-translate-btn" type="button" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">Traducir al español</button>
+            </div>
+            <p id="idea-loading" class="loading mt-3 text-sm text-slate-500 hidden">Cargando cita...</p>
+            <p id="idea-error" class="error mt-3 text-sm text-red-500 hidden"></p>
+            <footer class="mt-4 text-xs text-slate-500" id="idea-day-source">Pulsa “Actualizar resumen” o “Nueva cita” para obtener inspiración.</footer>
+        </div>
+
+        <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2" id="week-note-heading">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-check-2">
+                                <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="m9 16 2 2 4-4"/>
+                            </svg>
+                        </span>
+                        Esta semana
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">Un recuerdo aleatorio del rango semanal actual.</p>
+                </div>
+                <span id="week-note-date" class="text-xs font-semibold uppercase tracking-wide text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full hidden"></span>
+            </div>
+            <article class="mt-5 space-y-3" id="week-note-card">
+                <h3 id="week-note-title" class="text-lg font-semibold text-slate-800">Sin registros semanales.</h3>
+                <p id="week-note-content" class="text-slate-600">Todavía no encontramos notas en la semana en curso.</p>
+            </article>
+        </div>
+    </section>
+
+    <section aria-labelledby="yearly-memory-heading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="year-ago-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hourglass">
+                                <path d="M5 3h14"/><path d="M5 21h14"/><path d="M17 3v5a2 2 0 0 1-.6 1.4L13 13l3.4 3.6a2 2 0 0 1 .6 1.4v3"/><path d="M7 21v-3a2 2 0 0 1 .6-1.4L11 13 7.6 9.4A2 2 0 0 1 7 8V3"/>
+                            </svg>
+                        </span>
+                        Hace un año
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">Revive lo que escribiste en esta misma fecha hace un año.</p>
+                </div>
+                <span id="year-ago-date" class="text-xs font-semibold text-slate-500"></span>
+            </div>
+            <article class="mt-5 space-y-3" id="year-ago-card">
+                <h3 id="year-ago-title" class="text-lg font-semibold text-slate-800">Sin notas almacenadas.</h3>
+                <p id="year-ago-content" class="text-slate-600">No encontramos notas registradas en esta fecha del año anterior.</p>
+                <p id="year-ago-error" class="text-sm text-red-500 hidden">No hay coincidencias para la fecha de hace un año.</p>
+            </article>
+        </div>
+
+        <div class="reflection-card bg-white border border-slate-200 rounded-3xl shadow-lg px-6 py-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="current-year-heading" class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/10 text-sky-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-compass">
+                                <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                            </svg>
+                        </span>
+                        El camino
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">Un recordatorio aleatorio de tu progreso a lo largo del año actual.</p>
+                </div>
+                <span id="current-year-note-date" class="text-xs font-semibold uppercase tracking-wide text-sky-600 bg-sky-100 px-3 py-1 rounded-full hidden"></span>
+            </div>
+            <article class="mt-5 space-y-3" id="current-year-card">
+                <h3 id="current-year-note-title" class="text-lg font-semibold text-slate-800">Sin registros anuales.</h3>
+                <p id="current-year-note-content" class="text-slate-600">Necesitas al menos una nota en el año actual para ver resultados.</p>
+            </article>
+        </div>
+    </section>
+</main>
