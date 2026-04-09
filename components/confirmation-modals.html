@@ -19,7 +19,20 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
             ¡Acción Irreversible!
         </h3>
-        <p class="text-slate-600 mb-8">¿Estás absolutamente seguro de que quieres <strong>eliminar TODOS los datos</strong>? Perderás todo permanentemente.</p>
+        <p class="text-slate-600 mb-6">¿Estás absolutamente seguro de que quieres <strong>eliminar TODOS los datos</strong>? Perderás todo permanentemente.</p>
+
+        <!-- Opción de borrado en la nube (se muestra solo cuando hay sesión activa) -->
+        <div id="cloud-delete-option" class="mb-6 hidden p-3 bg-red-50 border border-red-100 rounded-lg">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="delete-cloud-data-checkbox"
+                    class="mt-1 w-4 h-4 text-red-600 rounded border-red-300 focus:ring-red-500">
+                <div class="text-sm">
+                    <span class="font-bold text-red-800">Eliminar también de la Nube</span>
+                    <p class="text-red-600 mt-1">Se borrarán todas tus notas, etiquetas y ajustes locales. Esta acción no se puede deshacer.</p>
+                </div>
+            </label>
+        </div>
+
         <div class="flex justify-end gap-4">
             <button data-action="cancel" class="px-5 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition">Cancelar</button>
             <button data-action="confirm" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">Sí, Eliminar Todo</button>

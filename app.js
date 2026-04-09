@@ -1,9 +1,13 @@
-if ('serviceWorker' in navigator) {
+// El registro del Service Worker se realiza en js/core/pwa.js
+// para páginas migradas a la estructura mantenible.
+// Este bloque se mantiene solo para compatibilidad con páginas no migradas
+// (ajustes.html, estadistica.html, reflexion.html) que aún cargan app.js directamente.
+if ('serviceWorker' in navigator && !window.__swRegistered) {
+    window.__swRegistered = true;
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
-            .then(() => navigator.serviceWorker.ready)
             .then(() => {
-                console.log('Service Worker instalado correctamente');
+                console.log('Service Worker registrado correctamente');
             })
             .catch(error => {
                 console.error('Service Worker registration failed:', error);
@@ -160,14 +164,9 @@ document.addEventListener('componentsLoaded', () => {
     const META_THEME_COLOR_LIGHT = '#2563eb';
     const META_THEME_COLOR_DARK = '#0f172a';
 
-    // Configuración de Supabase
-    const SUPABASE_URL = 'https://zpdidzngdgesfweplfvf.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwZGlkem5nZGdlc2Z3ZXBsZnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2ODQyNTcsImV4cCI6MjA3NTI2MDI1N30.mqNaYyJZaGK0yX_IeJlwj921cC6Trn63lleYEBRuwgg';
-    let supabaseClient = null;
-
-    if (typeof supabase !== 'undefined') {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    }
+    // Clave IndexedDB para el API Secret de sincronización GitHub
+    const API_SECRET_KEY = 'apiSecret';
+    const LAST_SYNC_KEY = 'lastGitHubSync';
 
     let db;
     let noteIdToEdit = null;
@@ -886,398 +885,197 @@ document.addEventListener('componentsLoaded', () => {
         };
     };
 
-    // --- Lógica de Supabase ---
-    const supabaseStatusEl = document.getElementById('supabase-status');
-    const supabaseLoggedInEl = document.getElementById('supabase-logged-in');
-    const supabaseLoggedOutEl = document.getElementById('supabase-logged-out');
-    const supabaseUserEmailEl = document.getElementById('supabase-user-email');
+    // --- Sincronización con GitHub ---
 
-    const showSupabaseStatus = (message, type = 'info') => {
-        if (!supabaseStatusEl) return;
-        supabaseStatusEl.textContent = message;
-        supabaseStatusEl.classList.remove('hidden', 'text-blue-600', 'text-green-600', 'text-red-600');
-        if (type === 'success') supabaseStatusEl.classList.add('text-green-600');
-        else if (type === 'error') supabaseStatusEl.classList.add('text-red-600');
-        else supabaseStatusEl.classList.add('text-blue-600');
-
-        setTimeout(() => supabaseStatusEl.classList.add('hidden'), 5000);
+    const showSyncStatus = (message, type = 'info') => {
+        const el = document.getElementById('sync-status');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('hidden', 'text-blue-600', 'text-green-600', 'text-red-600');
+        if (type === 'success') el.classList.add('text-green-600');
+        else if (type === 'error') el.classList.add('text-red-600');
+        else el.classList.add('text-blue-600');
+        setTimeout(() => el.classList.add('hidden'), 5000);
     };
 
-    const updateSupabaseUI = async () => {
-        if (!supabaseClient || !supabaseLoggedInEl || !supabaseLoggedOutEl) return;
+    /** Lee el API Secret desde IndexedDB */
+    const getApiSecret = () => new Promise((resolve) => {
+        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return resolve(null);
+        const req = db.transaction(SETTINGS_STORE, 'readonly')
+            .objectStore(SETTINGS_STORE).get(API_SECRET_KEY);
+        req.onsuccess = (e) => resolve(e.target.result?.value ?? null);
+        req.onerror = () => resolve(null);
+    });
 
-        const { data: { session } } = await supabaseClient.auth.getSession();
+    /** Reúne todos los datos locales listos para respaldar */
+    const gatherLocalData = () => new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('Base de datos no disponible'));
+        const storeNames = ['notes', 'tags', SETTINGS_STORE];
+        if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
+        const tx = db.transaction(storeNames, 'readonly');
 
-        if (session) {
-            supabaseLoggedInEl.classList.remove('hidden');
-            supabaseLoggedOutEl.classList.add('hidden');
-            if (supabaseUserEmailEl) supabaseUserEmailEl.textContent = session.user.email;
-        } else {
-            supabaseLoggedInEl.classList.add('hidden');
-            supabaseLoggedOutEl.classList.remove('hidden');
-        }
-    };
+        const reads = [
+            new Promise(res => { tx.objectStore('notes').getAll().onsuccess = e => res(e.target.result || []); }),
+            new Promise(res => { tx.objectStore('tags').getAll().onsuccess = e => res(e.target.result || []); }),
+            new Promise(res => {
+                tx.objectStore(SETTINGS_STORE).getAll().onsuccess = e => {
+                    const settings = (e.target.result || []).reduce((acc, item) => {
+                        if (item.key !== API_SECRET_KEY) acc[item.key] = item.value;
+                        return acc;
+                    }, {});
+                    res(settings);
+                };
+            }),
+            db.objectStoreNames.contains(SESSIONS_STORE)
+                ? new Promise(res => { tx.objectStore(SESSIONS_STORE).getAll().onsuccess = e => res(e.target.result || []); })
+                : Promise.resolve([])
+        ];
 
-    const handleSupabaseLogin = async () => {
-        const email = document.getElementById('supabase-email')?.value;
-        const password = document.getElementById('supabase-password')?.value;
+        Promise.all(reads)
+            .then(([notes, tags, settings, sessions]) => resolve({ notes, tags, settings, sessions }))
+            .catch(reject);
+    });
 
-        if (!email || !password) {
-            showSupabaseStatus('Email y contraseña requeridos', 'error');
-            return;
-        }
+    /** Escribe datos restaurados en IndexedDB (reemplaza todo excepto el API Secret) */
+    const writeRestoredData = (data) => new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('Base de datos no disponible'));
+        const { notes = [], tags = [], settings = {}, sessions = [] } = data;
+        const storeNames = ['notes', 'tags', SETTINGS_STORE];
+        if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
 
-        showSupabaseStatus('Iniciando sesión...');
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            showSupabaseStatus('Error: ' + error.message, 'error');
-        } else {
-            showSupabaseStatus('Sesión iniciada correctamente', 'success');
-            updateSupabaseUI();
-            syncWithSupabase(); // Sincronizar al entrar
-        }
-    };
-
-    const handleSupabaseSignup = async () => {
-        const email = document.getElementById('supabase-email')?.value;
-        const password = document.getElementById('supabase-password')?.value;
-
-        if (!email || !password) {
-            showSupabaseStatus('Email y contraseña requeridos', 'error');
-            return;
-        }
-
-        showSupabaseStatus('Creando cuenta...');
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-
-        if (error) {
-            showSupabaseStatus('Error: ' + error.message, 'error');
-        } else {
-            showSupabaseStatus('Registro exitoso. Revisa tu email o inicia sesión.', 'success');
-        }
-    };
-
-    const handleSupabaseLogout = async () => {
-        await supabaseClient.auth.signOut();
-        updateSupabaseUI();
-        showSupabaseStatus('Sesión cerrada', 'info');
-    };
-
-    const syncWithSupabase = async () => {
-        if (!supabaseClient || !db) return;
-
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) return;
-
-        showSupabaseStatus('Sincronizando todo...', 'info');
-
-        try {
-            await Promise.all([
-                syncNotes(session.user.id),
-                syncTags(session.user.id),
-                syncSessions(session.user.id),
-                syncSettings(session.user.id)
-            ]);
-
-            showSupabaseStatus('Sincronización completa', 'success');
-            refreshActiveView();
-        } catch (error) {
-            console.error('Error de sincronización global:', error);
-            showSupabaseStatus('Error en sincronización', 'error');
-        }
-    };
-
-    const syncNotes = async (userId) => {
-        // 1. Obtener notas remotas
-        const { data: remoteNotes, error: remoteError } = await supabaseClient
-            .from('notes')
-            .select('*');
-
-        if (remoteError) throw remoteError;
-
-        // 2. Obtener notas locales
-        const localNotes = await requestToPromise(
-            db.transaction('notes', 'readonly').objectStore('notes').getAll()
-        );
-
-        const remoteMap = new Map(remoteNotes.map(n => [Number(n.id), n]));
-        const localMap = new Map(localNotes.map(n => [n.id, n]));
-        const allIds = new Set([...remoteMap.keys(), ...localMap.keys()]);
-        const updatesToRemote = [];
-        const updatesToLocal = [];
-
-        for (const id of allIds) {
-            const remote = remoteMap.get(id);
-            const local = localMap.get(id);
-
-            if (remote && local) {
-                const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
-                const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-                if (localTime > remoteTime) updatesToRemote.push(local);
-                else if (remoteTime > localTime) updatesToLocal.push(remote);
-            } else if (local && !remote) {
-                updatesToRemote.push(local);
-            } else if (remote && !local) {
-                updatesToLocal.push(remote);
-            }
-        }
-
-        if (updatesToLocal.length > 0) {
-            const tx = db.transaction('notes', 'readwrite');
-            const store = tx.objectStore('notes');
-            for (const remoteNote of updatesToLocal) {
-                store.put({
-                    id: Number(remoteNote.id),
-                    title: remoteNote.title,
-                    content: remoteNote.content,
-                    tags: remoteNote.tags,
-                    color: remoteNote.color,
-                    isFavorite: remoteNote.is_favorite,
-                    updatedAt: remoteNote.updated_at
-                });
-            }
-            await transactionToPromise(tx);
-        }
-
-        if (updatesToRemote.length > 0) {
-            const cleanNotes = updatesToRemote.map(note => ({
-                id: note.id,
-                user_id: userId,
-                title: note.title,
-                content: note.content,
-                tags: note.tags,
-                color: note.color,
-                is_favorite: note.isFavorite || false,
-                updated_at: note.updatedAt || new Date().toISOString()
-            }));
-            const { error: upsertError } = await supabaseClient.from('notes').upsert(cleanNotes);
-            if (upsertError) throw upsertError;
-        }
-    };
-
-    const syncTags = async (userId) => {
-        const { data: remoteTags, error } = await supabaseClient.from('tags').select('*');
-        if (error) throw error;
-        const localTags = await requestToPromise(db.transaction('tags', 'readonly').objectStore('tags').getAll());
-
-        const remoteMap = new Map(remoteTags.map(t => [t.name, t]));
-        const localMap = new Map(localTags.map(t => [t.name, t]));
-        const allNames = new Set([...remoteMap.keys(), ...localMap.keys()]);
-
-        const toRemote = [];
-        const toLocal = [];
-
-        for (const name of allNames) {
-            const remote = remoteMap.get(name);
-            const local = localMap.get(name);
-
-            if (remote && local) {
-                const remoteTime = remote.updated_at ? new Date(remote.updated_at).getTime() : 0;
-                const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-                // Si no hay timestamp local, asumimos que es viejo o usamos fecha actual si queremos priorizarlo?
-                // Mejor: si local no tiene timestamp, lo subimos para que tenga.
-                if (localTime >= remoteTime) toRemote.push(local);
-                else toLocal.push(remote);
-            } else if (local && !remote) {
-                toRemote.push(local);
-            } else if (remote && !local) {
-                toLocal.push(remote);
-            }
-        }
-
-        if (toLocal.length > 0) {
-            const tx = db.transaction('tags', 'readwrite');
-            const store = tx.objectStore('tags');
-            for (const t of toLocal) {
-                store.put({
-                    name: t.name,
-                    color: t.color,
-                    order: t.order || 0,
-                    updatedAt: t.updated_at
-                });
-            }
-            await transactionToPromise(tx);
-        }
-
-        if (toRemote.length > 0) {
-            const cleanTags = toRemote.map(t => ({
-                user_id: userId,
-                name: t.name,
-                color: t.color,
-                order: t.order || 0,
-                updated_at: t.updatedAt || new Date().toISOString()
-            }));
-            // Upsert necesita conflict en (user_id, name)
-            const { error: upError } = await supabaseClient.from('tags').upsert(cleanTags, { onConflict: 'user_id,name' });
-            if (upError) throw upError;
-        }
-    };
-
-    const syncSessions = async (userId) => {
-        if (!db.objectStoreNames.contains('sessions')) return;
-        const { data: remoteSessions, error } = await supabaseClient.from('sessions').select('*');
-        if (error) throw error;
-        const localSessions = await requestToPromise(db.transaction('sessions', 'readonly').objectStore('sessions').getAll());
-
-        // Usar start_time como identificador único lógico
-        const remoteMap = new Map(remoteSessions.map(s => [Number(s.start_time), s]));
-        const localMap = new Map(localSessions.map(s => [Number(s.startTime), s]));
-
-        const toRemote = [];
-        const toLocal = []; // Sesiones son append-only generalmente, pero sincronizamos igual
-
-        // 1. Local que no está en remoto -> Subir
-        localSessions.forEach(local => {
-            if (!remoteMap.has(Number(local.startTime))) {
-                toRemote.push(local);
-            }
+        const tx = db.transaction(storeNames, 'readwrite');
+        storeNames.forEach(name => tx.objectStore(name).clear());
+        notes.forEach(n => tx.objectStore('notes').put(n));
+        tags.forEach(t => tx.objectStore('tags').put(t));
+        Object.entries(settings).forEach(([key, value]) => {
+            tx.objectStore(SETTINGS_STORE).put({ key, value });
         });
-
-        // 2. Remoto que no está en local -> Bajar
-        remoteSessions.forEach(remote => {
-            if (!localMap.has(Number(remote.start_time))) {
-                toLocal.push(remote);
-            }
-        });
-
-        if (toLocal.length > 0) {
-            const tx = db.transaction('sessions', 'readwrite');
-            const store = tx.objectStore('sessions');
-            for (const s of toLocal) {
-                store.add({
-                    startTime: s.start_time,
-                    endTime: s.end_time,
-                    duration: s.duration,
-                    date: s.date
-                }); // ID se autogenera
-            }
-            await transactionToPromise(tx);
-        }
-
-        if (toRemote.length > 0) {
-            const cleanSessions = toRemote.map(s => ({
-                user_id: userId,
-                start_time: s.startTime,
-                end_time: s.endTime,
-                duration: s.duration,
-                date: s.date,
-                updated_at: new Date().toISOString()
-            }));
-            const { error: insError } = await supabaseClient.from('sessions').insert(cleanSessions);
-            if (insError) console.warn('Error insertando sesiones:', insError);
-        }
-    };
-
-    const getAllSettings = async () => {
-        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return {};
-        const tx = db.transaction(SETTINGS_STORE, 'readonly');
-        const store = tx.objectStore(SETTINGS_STORE);
-        const allSettings = await requestToPromise(store.getAll());
-        return allSettings.reduce((acc, item) => {
-            acc[item.key] = item.value;
-            return acc;
-        }, {});
-    };
-
-    const saveSettingsFromObject = async (settingsObject) => {
-        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return;
-        const tx = db.transaction(SETTINGS_STORE, 'readwrite');
-        const store = tx.objectStore(SETTINGS_STORE);
-        for (const key in settingsObject) {
-            if (Object.prototype.hasOwnProperty.call(settingsObject, key)) {
-                store.put({ key: key, value: settingsObject[key] });
-            }
-        }
-        await transactionToPromise(tx);
-    };
-
-    const syncSettings = async (userId) => {
-        // Estrategia: "Merge inteligente". Si remoto existe, mezclamos.
-        // 1. Obtener perfil remoto
-        const { data: profile, error } = await supabaseClient
-            .from('profiles')
-            .select('settings, updated_at')
-            .eq('id', userId)
-            .single();
-
-        const localSettings = await getAllSettings();
-
-        if (!profile || !profile.settings) {
-            // No existe remoto -> Subir local
-            const { error: upError } = await supabaseClient
-                .from('profiles')
-                .upsert({
-                    id: userId,
-                    settings: localSettings,
-                    updated_at: new Date().toISOString()
-                });
-            if (upError) console.error('Error subiendo ajustes:', upError);
-        } else {
-            // Existe remoto.
-            // Si local está vacío (primera vez o borrado), bajamos.
-            // Si local tiene cosas, comparamos timestamps?... No tengo timestamp local global.
-            // Asumo remoto gana si hay conflicto porque es "backup".
-            // Pero preservamos cosas locales si no están en remoto?
-            // "settings" es un JSONB completo.
-
-            const remoteSettings = profile.settings;
-            // Mezclar
-            const merged = { ...remoteSettings, ...localSettings };
-            // Esto sobrescribe remoto con local... 
-            // Queremos restaurar lo remoto si "importar" es la intención.
-            // Pero "sincronizar" implica lo más nuevo.
-            // VAMOS A PRIORIZAR REMOTO para campos que existan.
-
-            const finalSettings = { ...localSettings, ...remoteSettings }; // Remoto sobrescribe local
-
-            // Guardar en IDB
-            await saveSettingsFromObject(finalSettings);
-
-            // Si local tenía cosas que remoto no, deberíamos actualizar remoto?
-            // Sí, para completar el backup.
-            const { error: upError } = await supabaseClient
-                .from('profiles')
-                .update({
-                    settings: finalSettings,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', userId);
-        }
-    };
-
-    const backupNoteToSupabase = async (note) => {
-        if (!supabaseClient) return;
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) return;
-
-        try {
-            await supabaseClient.from('notes').upsert({
-                id: note.id,
-                user_id: session.user.id,
-                title: note.title,
-                content: note.content,
-                tags: note.tags,
-                color: note.color,
-                is_favorite: note.isFavorite || false,
-                updated_at: new Date().toISOString()
+        if (db.objectStoreNames.contains(SESSIONS_STORE)) {
+            sessions.forEach(s => {
+                const { id: _id, ...rest } = s;
+                tx.objectStore(SESSIONS_STORE).add(rest);
             });
-        } catch (error) {
-            console.warn('No se pudo respaldar en la nube (offline):', error);
         }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+
+    /** Guarda el timestamp del último respaldo exitoso en IndexedDB */
+    const saveLastSyncTimestamp = (timestamp) => {
+        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        db.transaction(SETTINGS_STORE, 'readwrite')
+            .objectStore(SETTINGS_STORE)
+            .put({ key: LAST_SYNC_KEY, value: timestamp });
     };
 
-    const deleteNoteFromSupabase = async (id) => {
-        if (!supabaseClient) return;
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) return;
+    /** Actualiza el elemento de UI con el timestamp del último respaldo */
+    const updateLastSyncDisplay = (timestamp) => {
+        const el = document.getElementById('last-sync-display');
+        if (!el || !timestamp) return;
+        el.textContent = 'Último respaldo: ' + new Date(timestamp).toLocaleString('es-ES');
+    };
 
+    /** Carga y muestra el último timestamp de respaldo desde IndexedDB */
+    const loadLastSyncDisplay = () => {
+        if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        db.transaction(SETTINGS_STORE, 'readonly')
+            .objectStore(SETTINGS_STORE).get(LAST_SYNC_KEY).onsuccess = (e) => {
+                updateLastSyncDisplay(e.target.result?.value ?? null);
+            };
+    };
+
+    /** Respaldo automático silencioso tras guardar o borrar una nota */
+    const triggerAutoBackup = async () => {
+        if (!window.GitHubSync) return;
+        const apiSecret = await getApiSecret();
+        if (!apiSecret) return;
         try {
-            await supabaseClient.from('notes').delete().eq('id', id);
+            const data = await gatherLocalData();
+            const result = await window.GitHubSync.backup(data, apiSecret);
+            saveLastSyncTimestamp(result.timestamp);
+            updateLastSyncDisplay(result.timestamp);
         } catch (error) {
-            console.warn('No se pudo eliminar de la nube:', error);
+            console.warn('Auto-backup fallido:', error.message);
         }
     };
+
+    /** Respaldo manual iniciado desde el botón en Ajustes */
+    const handleManualBackup = async () => {
+        if (!window.GitHubSync) return;
+        const apiSecret = await getApiSecret();
+        if (!apiSecret) {
+            showSyncStatus('Configura el API Secret primero.', 'error');
+            return;
+        }
+        showSyncStatus('Haciendo respaldo...', 'info');
+        try {
+            const data = await gatherLocalData();
+            const result = await window.GitHubSync.backup(data, apiSecret);
+            saveLastSyncTimestamp(result.timestamp);
+            updateLastSyncDisplay(result.timestamp);
+            showSyncStatus('Respaldo completado correctamente.', 'success');
+        } catch (error) {
+            showSyncStatus('Error en respaldo: ' + error.message, 'error');
+        }
+    };
+
+    /** Restauración completa desde el respaldo en GitHub */
+    const handleRestore = async () => {
+        if (!window.GitHubSync) return;
+        const apiSecret = await getApiSecret();
+        if (!apiSecret) {
+            showSyncStatus('Configura el API Secret primero.', 'error');
+            return;
+        }
+        showSyncStatus('Restaurando datos desde la nube...', 'info');
+        try {
+            const data = await window.GitHubSync.restore(apiSecret);
+            await writeRestoredData(data);
+            const ts = data.backedUpAt || new Date().toISOString();
+            saveLastSyncTimestamp(ts);
+            updateLastSyncDisplay(ts);
+            showSyncStatus('Datos restaurados correctamente.', 'success');
+            refreshActiveView();
+            renderTags();
+            populateMultiSelectDropdown();
+            updateStorageInfo();
+            loadThemePreference();
+        } catch (error) {
+            showSyncStatus('Error en restauración: ' + error.message, 'error');
+        }
+    };
+
+    /** Guarda el API Secret introducido por el usuario en IndexedDB */
+    const handleSaveApiSecret = () => {
+        const input = document.getElementById('api-secret-input');
+        if (!input || !db) return;
+        const value = input.value.trim();
+        if (!value) {
+            showSyncStatus('El API Secret no puede estar vacío.', 'error');
+            return;
+        }
+        db.transaction(SETTINGS_STORE, 'readwrite')
+            .objectStore(SETTINGS_STORE).put({ key: API_SECRET_KEY, value });
+        input.value = '';
+        input.placeholder = '••••••••  (secreto guardado)';
+        showSyncStatus('API Secret guardado correctamente.', 'success');
+    };
+
+    /** Muestra en el input si ya hay un secreto guardado */
+    const loadApiSecretStatus = () => {
+        const input = document.getElementById('api-secret-input');
+        if (!input || !db || !db.objectStoreNames.contains(SETTINGS_STORE)) return;
+        getApiSecret().then(secret => {
+            if (secret) input.placeholder = '••••••••  (secreto guardado)';
+        });
+    };
+
+
+
+
+
+
+
 
     function isSettingsStoreReady() {
         return Boolean(db && db.objectStoreNames.contains(SETTINGS_STORE));
@@ -2064,14 +1862,13 @@ document.addEventListener('componentsLoaded', () => {
         const store = tx.objectStore('notes');
         if (noteIdToEdit !== null && noteIdToEdit !== noteTimestamp) {
             store.delete(noteIdToEdit);
-            deleteNoteFromSupabase(noteIdToEdit);
         }
         const noteData = { id: noteTimestamp, title: title || 'Nota sin título', content, tags: selectedTags, updatedAt: new Date().toISOString() };
         store.put(noteData);
         tx.oncomplete = () => {
-            backupNoteToSupabase(noteData);
             resetForm();
             refreshActiveView();
+            triggerAutoBackup();
         };
     };
 
@@ -2417,73 +2214,49 @@ document.addEventListener('componentsLoaded', () => {
         }
     };
 
-    const clearAllData = async () => {
-        if (!db) return;
+    const clearAllData = () => {
+        if (!db) return Promise.resolve();
 
         // 1. Identificar almacenes a limpiar
         const stores = ['notes', 'tags'];
         if (db.objectStoreNames.contains(SETTINGS_STORE)) stores.push(SETTINGS_STORE);
         if (db.objectStoreNames.contains(SESSIONS_STORE)) stores.push(SESSIONS_STORE);
 
-        // 2. Transacción de limpieza local
-        const tx = db.transaction(stores, 'readwrite');
-        stores.forEach(storeName => {
-            tx.objectStore(storeName).clear();
+        return new Promise((resolve, reject) => {
+            // 2. Transacción de limpieza local
+            const tx = db.transaction(stores, 'readwrite');
+            stores.forEach(storeName => {
+                tx.objectStore(storeName).clear();
+            });
+
+            tx.oncomplete = () => {
+                // 3. Resetear variables en memoria
+                currentThemePreference = DEFAULT_THEME;
+                applyTheme(currentThemePreference);
+
+                // Limpiar inputs UI
+                if (userNameInput) userNameInput.value = '';
+                if (birthdayMonthSelect) birthdayMonthSelect.value = '';
+                if (birthdayDayInput) birthdayDayInput.value = '';
+                if (discordWebhookInput) discordWebhookInput.value = '';
+                if (noteCountEl) noteCountEl.textContent = '0';
+                if (tagCountEl) tagCountEl.textContent = '0';
+
+                refreshActiveView();
+                renderTags();
+                populateMultiSelectDropdown();
+                updateStorageInfo();
+                showUserNameStatus('Todos los datos locales han sido eliminados.', 'success');
+                resolve();
+            };
+
+            tx.onerror = () => reject(tx.error);
         });
-
-        tx.oncomplete = () => {
-            // 3. Resetear variables en memoria
-            currentThemePreference = DEFAULT_THEME;
-            applyTheme(currentThemePreference);
-
-            // Limpiar inputs UI
-            if (userNameInput) userNameInput.value = '';
-            if (birthdayMonthSelect) birthdayMonthSelect.value = '';
-            if (birthdayDayInput) birthdayDayInput.value = '';
-            if (discordWebhookInput) discordWebhookInput.value = '';
-            if (noteCountEl) noteCountEl.textContent = '0';
-            if (tagCountEl) tagCountEl.textContent = '0';
-
-            refreshActiveView();
-            renderTags();
-            populateMultiSelectDropdown();
-            updateStorageInfo();
-            showUserNameStatus('Todos los datos locales han sido eliminados.', 'success');
-        };
     };
 
-    const deleteAllRemoteData = async () => {
-        if (!supabaseClient) return;
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) return;
-
-        const userId = session.user.id;
-        showSupabaseStatus('Eliminando datos en la nube...', 'info');
-
-        try {
-            const promises = [
-                supabaseClient.from('notes').delete().eq('user_id', userId),
-                supabaseClient.from('tags').delete().eq('user_id', userId),
-            ];
-
-            // Opcional: tabla sessions si existe
-            const { error: sessionCheck } = await supabaseClient.from('sessions').select('id').limit(1);
-            if (!sessionCheck) {
-                promises.push(supabaseClient.from('sessions').delete().eq('user_id', userId));
-            }
-
-            // Para profiles, no borramos la fila entera para no romper auth, solo limpiamos settings
-            promises.push(
-                supabaseClient.from('profiles').update({ settings: {} }).eq('id', userId)
-            );
-
-            await Promise.all(promises);
-            showSupabaseStatus('Todos los datos en la nube han sido eliminados.', 'success');
-        } catch (error) {
-            console.error('Error eliminando datos remotos:', error);
-            showSupabaseStatus('Error al eliminar datos en la nube.', 'error');
-        }
-    };
+    // Nota: al borrar todos los datos locales NO se borra el respaldo en GitHub.
+    // GitHub actúa como fuente de verdad; si se borran datos locales,
+    // el usuario puede restaurarlos desde Ajustes → "Restaurar desde la nube".
 
     const showNoteFormModal = () => {
         noteFormModal.classList.remove('hidden');
@@ -2511,10 +2284,9 @@ document.addEventListener('componentsLoaded', () => {
     };
 
     // --- Event Listeners ---
-    document.getElementById('supabase-login-btn')?.addEventListener('click', handleSupabaseLogin);
-    document.getElementById('supabase-signup-btn')?.addEventListener('click', handleSupabaseSignup);
-    document.getElementById('supabase-logout-btn')?.addEventListener('click', handleSupabaseLogout);
-    document.getElementById('supabase-sync-now-btn')?.addEventListener('click', syncWithSupabase);
+    document.getElementById('save-api-secret-btn')?.addEventListener('click', handleSaveApiSecret);
+    document.getElementById('backup-now-btn')?.addEventListener('click', handleManualBackup);
+    document.getElementById('restore-from-cloud-btn')?.addEventListener('click', handleRestore);
 
     if (showNoteFormBtn) showNoteFormBtn.addEventListener('click', showNoteFormModal);
     if (closeNoteModalBtn) closeNoteModalBtn.addEventListener('click', resetForm);
@@ -2733,20 +2505,14 @@ document.addEventListener('componentsLoaded', () => {
             if (e.target.dataset.action === 'confirm') {
                 if (modal.id === 'delete-one-modal' && noteIdToDelete) {
                     db.transaction('notes', 'readwrite').objectStore('notes').delete(noteIdToDelete).onsuccess = () => {
-                        deleteNoteFromSupabase(noteIdToDelete);
                         refreshActiveView();
+                        triggerAutoBackup();
                     };
                     noteIdToDelete = null;
                 } else if (modal.id === 'delete-all-modal') {
-                    const deleteCloud = document.getElementById('delete-cloud-data-checkbox')?.checked;
-
-                    // Borrado local siempre ocurre
                     await clearAllData();
-
-                    // Borrado remoto opcional
-                    if (deleteCloud) {
-                        await deleteAllRemoteData();
-                    }
+                    // El respaldo en GitHub NO se elimina al borrar datos locales.
+                    // Si el usuario quiere restaurar, puede hacerlo desde Ajustes.
                 }
                 hideModal(modal);
             }
@@ -2755,36 +2521,16 @@ document.addEventListener('componentsLoaded', () => {
 
     // Mostrar modal con opción de nube condicional
     if (clearAllDataBtn) {
-        // Remover listener anterior si existiera, o sobreescribir lógica
-        // Mejor agregar listener nuevo que maneje la UI previa
-        clearAllDataBtn.removeEventListener('click', () => showModal(deleteAllModal)); // Intento de limpieza defensiva
-
-        clearAllDataBtn.addEventListener('click', async () => {
+        clearAllDataBtn.addEventListener('click', () => {
+            // La opción "borrar de la nube" no aplica con GitHub como backup:
+            // el respaldo se conserva para poder restaurar después.
             const cloudOption = document.getElementById('cloud-delete-option');
-            const checkbox = document.getElementById('delete-cloud-data-checkbox');
-
-            if (cloudOption && checkbox) {
-                // Verificar sesión
-                if (supabaseClient) {
-                    const { data } = await supabaseClient.auth.getSession();
-                    if (data?.session) {
-                        cloudOption.classList.remove('hidden');
-                        checkbox.checked = false; // Resetear
-                    } else {
-                        cloudOption.classList.add('hidden');
-                    }
-                } else {
-                    cloudOption.classList.add('hidden');
-                }
-            }
+            if (cloudOption) cloudOption.classList.add('hidden');
             showModal(deleteAllModal);
         });
     }
 
-    // Inicializar UI de Supabase si existe el cliente
-    if (supabaseClient) {
-        updateSupabaseUI();
-        // Sincronización periódica o al cargar
-        setTimeout(syncWithSupabase, 1000);
-    }
+    // Inicializar estado de sincronización GitHub
+    loadApiSecretStatus();
+    loadLastSyncDisplay();
 });
