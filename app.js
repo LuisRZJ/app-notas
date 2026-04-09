@@ -920,7 +920,15 @@ document.addEventListener('componentsLoaded', () => {
             new Promise(res => {
                 tx.objectStore(SETTINGS_STORE).getAll().onsuccess = e => {
                     const settings = (e.target.result || []).reduce((acc, item) => {
-                        if (item.key !== API_SECRET_KEY) acc[item.key] = item.value;
+                        if (item.key === API_SECRET_KEY) return acc; // nunca respaldar el secreto
+                        if (item.value !== undefined) {
+                            // Registro estándar: { key, value }
+                            acc[item.key] = { __type: 'value', v: item.value };
+                        } else {
+                            // Registro con estructura especial (ej: birthday { key, month, day })
+                            const { key, ...rest } = item;
+                            acc[key] = { __type: 'raw', ...rest };
+                        }
                         return acc;
                     }, {});
                     res(settings);
@@ -947,8 +955,17 @@ document.addEventListener('componentsLoaded', () => {
         storeNames.forEach(name => tx.objectStore(name).clear());
         notes.forEach(n => tx.objectStore('notes').put(n));
         tags.forEach(t => tx.objectStore('tags').put(t));
-        Object.entries(settings).forEach(([key, value]) => {
-            tx.objectStore(SETTINGS_STORE).put({ key, value });
+        Object.entries(settings).forEach(([key, meta]) => {
+            if (!meta || typeof meta !== 'object') {
+                // Compatibilidad con respaldos antiguos sin __type
+                tx.objectStore(SETTINGS_STORE).put({ key, value: meta });
+            } else if (meta.__type === 'raw') {
+                const { __type, ...rest } = meta;
+                tx.objectStore(SETTINGS_STORE).put({ key, ...rest });
+            } else {
+                // __type === 'value' (formato estándar)
+                tx.objectStore(SETTINGS_STORE).put({ key, value: meta.v });
+            }
         });
         if (db.objectStoreNames.contains(SESSIONS_STORE)) {
             sessions.forEach(s => {
@@ -984,19 +1001,54 @@ document.addEventListener('componentsLoaded', () => {
             };
     };
 
-    /** Respaldo automático silencioso tras guardar o borrar una nota */
-    const triggerAutoBackup = async () => {
-        if (!window.GitHubSync) return;
-        const apiSecret = await getApiSecret();
-        if (!apiSecret) return;
-        try {
-            const data = await gatherLocalData();
-            const result = await window.GitHubSync.backup(data, apiSecret);
-            saveLastSyncTimestamp(result.timestamp);
-            updateLastSyncDisplay(result.timestamp);
-        } catch (error) {
-            console.warn('Auto-backup fallido:', error.message);
+    // --- Indicador visual de respaldo ---
+    let _syncIndicatorTimer = null;
+    const showSyncIndicator = (state) => {
+        const el = document.getElementById('sync-nav-indicator');
+        if (!el) return;
+        const icon = document.getElementById('sync-indicator-icon');
+        const label = document.getElementById('sync-indicator-label');
+        const checkPath = el.querySelector('.sync-check-path');
+        clearTimeout(_syncIndicatorTimer);
+        if (state === 'saving') {
+            if (icon) { icon.classList.add('sync-spin'); if (checkPath) checkPath.style.display = 'none'; }
+            if (label) label.textContent = 'Guardando…';
+            el.classList.remove('sync-indicator--visible');
+            el.classList.add('sync-indicator--visible');
+        } else if (state === 'saved') {
+            if (icon) { icon.classList.remove('sync-spin'); if (checkPath) checkPath.style.display = 'inline'; }
+            if (label) label.textContent = 'Guardado';
+            // Ocultar automáticamente tras 2.5 s
+            _syncIndicatorTimer = setTimeout(() => {
+                el.classList.remove('sync-indicator--visible');
+            }, 2500);
         }
+    };
+
+    /** Respaldo automático silencioso tras guardar o borrar una nota.
+     *  Con debounce de 4 s para evitar backups concurrentes que causen
+     *  conflictos de SHA en la GitHub Contents API. */
+    let _autoBackupTimer = null;
+    const triggerAutoBackup = () => {
+        clearTimeout(_autoBackupTimer);
+        _autoBackupTimer = setTimeout(async () => {
+            if (!window.GitHubSync) return;
+            const apiSecret = await getApiSecret();
+            if (!apiSecret) return;
+            showSyncIndicator('saving');
+            try {
+                const data = await gatherLocalData();
+                const result = await window.GitHubSync.backup(data, apiSecret);
+                saveLastSyncTimestamp(result.timestamp);
+                updateLastSyncDisplay(result.timestamp);
+                showSyncIndicator('saved');
+            } catch (error) {
+                console.warn('Auto-backup fallido (se reintentará en la próxima operación):', error.message);
+                // Ocultar silenciosamente sin alarmar al usuario
+                const el = document.getElementById('sync-nav-indicator');
+                if (el) el.classList.remove('sync-indicator--visible');
+            }
+        }, 4000); // espera 4 s desde la última operación antes de respaldar
     };
 
     /** Respaldo manual iniciado desde el botón en Ajustes */

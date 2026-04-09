@@ -119,13 +119,12 @@ module.exports = async function handler(req, res) {
             const { notes = [], tags = [], settings = {}, sessions = [] } = req.body;
             const payload = { notes, tags, settings, sessions };
 
-            // Procesar archivos en paralelo para mayor velocidad
-            await Promise.all(
-                FILES.map(async (name) => {
-                    const { sha } = await readFile(name, GITHUB_TOKEN);
-                    await writeFile(name, payload[name], sha, GITHUB_TOKEN);
-                })
-            );
+            // Escribir archivos de forma secuencial: cada PUT espera
+            // a que el anterior termine, evitando conflictos de SHA.
+            for (const name of FILES) {
+                const { sha } = await readFile(name, GITHUB_TOKEN);
+                await writeFile(name, payload[name], sha, GITHUB_TOKEN);
+            }
 
             const timestamp = new Date().toISOString();
             return res.status(200).json({ success: true, timestamp });

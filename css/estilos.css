@@ -83,6 +83,39 @@ body {
     background-image: linear-gradient(135deg, #38bdf8, #0f172a);
 }
 
+/* --- Indicador de respaldo en segundo plano --- */
+@keyframes sync-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.sync-spin {
+    animation: sync-spin 1.4s linear infinite;
+    display: inline-block;
+}
+.sync-indicator {
+    /* Por defecto oculto; se muestra con .sync-indicator--visible */
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.sync-indicator--visible {
+    display: flex !important;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+body[data-theme="dark"] #sync-nav-indicator {
+    background-color: #1f2937;
+    border-color: #334155;
+}
+body[data-theme="dark"] #sync-indicator-icon {
+    color: #60a5fa;
+}
+body[data-theme="dark"] #sync-indicator-label {
+    color: #94a3b8;
+}
+/* --------------------------------------------- */
+
 /* Estilos para el scroll dentro del modal del formulario */
 #note-form-modal-content {
     max-height: 90vh;
@@ -517,7 +550,7 @@ body[data-theme="dark"] .markdown-content pre { background-color: #1e293b; borde
 body[data-theme="dark"] .copy-btn { color: #f59e0b !important; }
 
 /* ================================
-   ESTILOS ESPECÍFICOS DE ESTADÍSTICAS
+   ESTILOS ESPECï¿½FICOS DE ESTADï¿½STICAS
    ================================ */
 
 .stat-card {
@@ -589,7 +622,7 @@ body[data-theme="dark"] .copy-btn { color: #f59e0b !important; }
     color: #1d4ed8;
 }
 
-/* TEMA OSCURO - ESTADÍSTICAS */
+/* TEMA OSCURO - ESTADï¿½STICAS */
 body[data-theme="dark"] .stat-card {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.82));
     border: 1px solid rgba(148, 163, 184, 0.25);
