@@ -114,6 +114,30 @@ body[data-theme="dark"] #sync-indicator-icon {
 body[data-theme="dark"] #sync-indicator-label {
     color: #94a3b8;
 }
+
+/* --- Modal de detección de sincronización entre dispositivos --- */
+body[data-theme="dark"] #sync-detected-overlay .sync-modal-card {
+    background-color: #1e293b !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+body[data-theme="dark"] #sync-detected-overlay .sync-modal-card h3 {
+    color: #f1f5f9 !important;
+}
+body[data-theme="dark"] #sync-detected-overlay .sync-modal-card p {
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] #sync-detected-overlay .sync-modal-timestamps {
+    background-color: #0f172a !important;
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] #sync-detected-overlay #sync-keep-local {
+    background-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+body[data-theme="dark"] #sync-detected-overlay #sync-keep-local:hover {
+    background-color: #475569 !important;
+}
+/* ------------------------------------------------------------------- */
 /* --------------------------------------------- */
 
 /* Estilos para el scroll dentro del modal del formulario */

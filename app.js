@@ -425,6 +425,7 @@ document.addEventListener('componentsLoaded', () => {
         }
         renderTags();
         refreshActiveView();
+        checkCloudSync();
     }
 
     function ensureSettingsStore() {
@@ -483,6 +484,8 @@ document.addEventListener('componentsLoaded', () => {
                 loadUserName();
                 loadWebhookUrl();
                 loadUserNameGreeting();
+                loadApiSecretStatus();
+                loadLastSyncDisplay();
                 break;
             default:
                 renderNotes();
@@ -1094,6 +1097,91 @@ document.addEventListener('componentsLoaded', () => {
             loadThemePreference();
         } catch (error) {
             showSyncStatus('Error en restauración: ' + error.message, 'error');
+        }
+    };
+
+    // ─── Detección de sincronización entre dispositivos ───────────────────────────
+
+    /**
+     * Crea y muestra un modal no cerrable cuando la nube tiene datos más recientes.
+     * El usuario debe elegir entre mantener sus datos locales o restaurar desde la nube.
+     */
+    const showSyncDetectedModal = (cloudTimestamp, localTimestamp) => {
+        if (document.getElementById('sync-detected-overlay')) return;
+        const fmtDate = ts => ts ? new Date(ts).toLocaleString('es-ES') : 'Sin datos locales';
+
+        const overlay = document.createElement('div');
+        overlay.id = 'sync-detected-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+        overlay.innerHTML = `
+            <div class="sync-modal-card" style="background:#ffffff;border-radius:1rem;padding:1.5rem;max-width:22rem;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.35);">
+                <div style="text-align:center;font-size:2rem;margin-bottom:0.75rem;">☁️</div>
+                <h3 style="font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;text-align:center;color:#1e293b;">Datos más recientes en la nube</h3>
+                <p style="font-size:0.85rem;color:#475569;margin-bottom:1rem;text-align:center;">Hay una versión más reciente de tus datos guardada desde otro dispositivo.</p>
+                <div class="sync-modal-timestamps" style="background:#f1f5f9;border-radius:0.5rem;padding:0.75rem;font-size:0.8rem;color:#64748b;margin-bottom:1.25rem;">
+                    <div>☁️&nbsp;<strong>Nube:</strong>&nbsp;${fmtDate(cloudTimestamp)}</div>
+                    <div style="margin-top:0.25rem;">📱&nbsp;<strong>Local:</strong>&nbsp;${fmtDate(localTimestamp)}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                    <button id="sync-restore-cloud" style="background:#2563eb;color:#ffffff;border:none;border-radius:0.5rem;padding:0.7rem;font-size:0.875rem;font-weight:600;cursor:pointer;">
+                        Actualizar desde la nube
+                    </button>
+                    <button id="sync-keep-local" style="background:#f1f5f9;color:#475569;border:none;border-radius:0.5rem;padding:0.7rem;font-size:0.875rem;font-weight:600;cursor:pointer;">
+                        Continuar con mis datos actuales
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#sync-keep-local').addEventListener('click', () => {
+            // Guardar el timestamp de la nube como local para no volver a preguntar
+            saveLastSyncTimestamp(cloudTimestamp);
+            updateLastSyncDisplay(cloudTimestamp);
+            overlay.remove();
+        });
+
+        overlay.querySelector('#sync-restore-cloud').addEventListener('click', async () => {
+            const restoreBtn = overlay.querySelector('#sync-restore-cloud');
+            const keepBtn = overlay.querySelector('#sync-keep-local');
+            restoreBtn.disabled = true;
+            keepBtn.disabled = true;
+            restoreBtn.textContent = 'Restaurando…';
+            await handleRestore();
+            overlay.remove();
+        });
+    };
+
+    /**
+     * Compara el timestamp del respaldo en la nube con el local.
+     * Si la nube es más reciente (o el local no tiene historial), muestra el modal.
+     */
+    const checkCloudSync = async () => {
+        if (pageType === 'chat') return;
+        if (!window.GitHubSync) return;
+        const apiSecret = await getApiSecret();
+        if (!apiSecret) return;
+        try {
+            const response = await fetch('/api/backup?meta=1', {
+                headers: { 'Authorization': `Bearer ${apiSecret}` }
+            });
+            if (!response.ok) return;
+            const { backedUpAt } = await response.json();
+            if (!backedUpAt) return;
+
+            const localTs = await new Promise(resolve => {
+                if (!db || !db.objectStoreNames.contains(SETTINGS_STORE)) return resolve(null);
+                const req = db.transaction(SETTINGS_STORE, 'readonly')
+                    .objectStore(SETTINGS_STORE).get(LAST_SYNC_KEY);
+                req.onsuccess = e => resolve(e.target.result?.value ?? null);
+                req.onerror = () => resolve(null);
+            });
+
+            // La nube es más reciente si: no hay timestamp local, o el de la nube es mayor
+            if (localTs && backedUpAt <= localTs) return;
+
+            showSyncDetectedModal(backedUpAt, localTs);
+        } catch (e) {
+            console.warn('[checkCloudSync]', e.message);
         }
     };
 
@@ -2583,6 +2671,6 @@ document.addEventListener('componentsLoaded', () => {
     }
 
     // Inicializar estado de sincronización GitHub
-    loadApiSecretStatus();
-    loadLastSyncDisplay();
+    // (loadApiSecretStatus y loadLastSyncDisplay se invocan desde refreshActiveView
+    //  una vez que los componentes del DOM están cargados)
 });

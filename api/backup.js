@@ -99,13 +99,22 @@ module.exports = async function handler(req, res) {
     // ─── GET: Leer datos desde GitHub ────────────────────────────────────────────
     if (req.method === 'GET') {
         try {
+            // Modo ligero: solo devuelve el timestamp del último respaldo
+            if (req.query.meta === '1') {
+                const { content } = await readFile('settings', GITHUB_TOKEN);
+                return res.status(200).json({ backedUpAt: content?.__backedUpAt ?? null });
+            }
+
             const result = {};
             for (const name of FILES) {
                 const { content } = await readFile(name, GITHUB_TOKEN);
                 // Si el archivo no existe aún, devolvemos valor vacío por defecto
                 result[name] = content ?? (name === 'settings' ? {} : []);
             }
-            result.backedUpAt = new Date().toISOString();
+            // Extraer __backedUpAt de settings antes de devolverlo al cliente
+            const { __backedUpAt, ...cleanSettings } = result.settings || {};
+            result.settings = cleanSettings;
+            result.backedUpAt = __backedUpAt ?? null;
             return res.status(200).json(result);
         } catch (error) {
             console.error('[backup:GET]', error);
@@ -117,7 +126,10 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PUT') {
         try {
             const { notes = [], tags = [], settings = {}, sessions = [] } = req.body;
-            const payload = { notes, tags, settings, sessions };
+            const timestamp = new Date().toISOString();
+            // Inyectar __backedUpAt en settings para que otros dispositivos puedan
+            // detectar si la nube tiene datos más recientes que los locales.
+            const payload = { notes, tags, settings: { __backedUpAt: timestamp, ...settings }, sessions };
 
             // Escribir archivos de forma secuencial: cada PUT espera
             // a que el anterior termine, evitando conflictos de SHA.
@@ -126,7 +138,6 @@ module.exports = async function handler(req, res) {
                 await writeFile(name, payload[name], sha, GITHUB_TOKEN);
             }
 
-            const timestamp = new Date().toISOString();
             return res.status(200).json({ success: true, timestamp });
         } catch (error) {
             console.error('[backup:PUT]', error);
