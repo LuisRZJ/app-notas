@@ -947,37 +947,46 @@ document.addEventListener('componentsLoaded', () => {
             .catch(reject);
     });
 
-    /** Escribe datos restaurados en IndexedDB (reemplaza todo excepto el API Secret) */
+    /** Escribe datos restaurados en IndexedDB y conserva el API Secret local */
     const writeRestoredData = (data) => new Promise((resolve, reject) => {
         if (!db) return reject(new Error('Base de datos no disponible'));
-        const { notes = [], tags = [], settings = {}, sessions = [] } = data;
-        const storeNames = ['notes', 'tags', SETTINGS_STORE];
-        if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
 
-        const tx = db.transaction(storeNames, 'readwrite');
-        storeNames.forEach(name => tx.objectStore(name).clear());
-        notes.forEach(n => tx.objectStore('notes').put(n));
-        tags.forEach(t => tx.objectStore('tags').put(t));
-        Object.entries(settings).forEach(([key, meta]) => {
-            if (!meta || typeof meta !== 'object') {
-                // Compatibilidad con respaldos antiguos sin __type
-                tx.objectStore(SETTINGS_STORE).put({ key, value: meta });
-            } else if (meta.__type === 'raw') {
-                const { __type, ...rest } = meta;
-                tx.objectStore(SETTINGS_STORE).put({ key, ...rest });
-            } else {
-                // __type === 'value' (formato estándar)
-                tx.objectStore(SETTINGS_STORE).put({ key, value: meta.v });
-            }
-        });
-        if (db.objectStoreNames.contains(SESSIONS_STORE)) {
-            sessions.forEach(s => {
-                const { id: _id, ...rest } = s;
-                tx.objectStore(SESSIONS_STORE).add(rest);
+        getApiSecret().then((localApiSecret) => {
+            const { notes = [], tags = [], settings = {}, sessions = [] } = data;
+            const storeNames = ['notes', 'tags', SETTINGS_STORE];
+            if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
+
+            const tx = db.transaction(storeNames, 'readwrite');
+            storeNames.forEach(name => tx.objectStore(name).clear());
+            notes.forEach(n => tx.objectStore('notes').put(n));
+            tags.forEach(t => tx.objectStore('tags').put(t));
+            Object.entries(settings).forEach(([key, meta]) => {
+                if (!meta || typeof meta !== 'object') {
+                    // Compatibilidad con respaldos antiguos sin __type
+                    tx.objectStore(SETTINGS_STORE).put({ key, value: meta });
+                } else if (meta.__type === 'raw') {
+                    const { __type, ...rest } = meta;
+                    tx.objectStore(SETTINGS_STORE).put({ key, ...rest });
+                } else {
+                    // __type === 'value' (formato estándar)
+                    tx.objectStore(SETTINGS_STORE).put({ key, value: meta.v });
+                }
             });
-        }
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+
+            if (localApiSecret) {
+                // Siempre preservar el secreto local del dispositivo.
+                tx.objectStore(SETTINGS_STORE).put({ key: API_SECRET_KEY, value: localApiSecret });
+            }
+
+            if (db.objectStoreNames.contains(SESSIONS_STORE)) {
+                sessions.forEach(s => {
+                    const { id: _id, ...rest } = s;
+                    tx.objectStore(SESSIONS_STORE).add(rest);
+                });
+            }
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        }).catch(reject);
     });
 
     /** Guarda el timestamp del último respaldo exitoso en IndexedDB */
