@@ -26,6 +26,46 @@ body {
     overflow-wrap: break-word;
 }
 
+.note-content-preview {
+    position: relative;
+}
+
+.note-preview--collapsed {
+    max-height: 12rem;
+    overflow: hidden;
+}
+
+.note-preview-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3.5rem;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(248, 250, 252, 0), rgba(248, 250, 252, 0.95));
+}
+
+.note-markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+}
+
+.note-markdown-content th,
+.note-markdown-content td {
+    border: 1px solid #cbd5e1;
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+}
+
+.note-markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.note-history-item {
+    border-left: 4px solid #cbd5e1;
+}
+
 /* Estilos para modales */
 .modal.hidden {
     display: none;
@@ -161,6 +201,32 @@ body[data-theme="dark"] .bg-slate-200,
 body[data-theme="dark"] .bg-slate-300 {
     background-color: #334155 !important;
     color: #f8fafc !important;
+}
+body[data-theme="dark"] .note-content-preview {
+    background-color: #111827 !important;
+    border-color: #334155 !important;
+}
+body[data-theme="dark"] .note-preview-fade {
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0), rgba(17, 24, 39, 0.95));
+}
+body[data-theme="dark"] #note-read-modal-content,
+body[data-theme="dark"] #note-history-modal-content {
+    background-color: #1f2937 !important;
+    border: 1px solid #334155;
+}
+body[data-theme="dark"] #note-history-empty {
+    background-color: #111827 !important;
+    border-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+body[data-theme="dark"] .note-history-item {
+    background-color: #111827;
+    border-color: #334155;
+    border-left-color: #475569;
+}
+body[data-theme="dark"] .note-markdown-content th,
+body[data-theme="dark"] .note-markdown-content td {
+    border-color: #475569;
 }
 body[data-theme="dark"] .text-slate-900,
 body[data-theme="dark"] .text-slate-800,
@@ -645,6 +711,15 @@ body[data-theme="dark"] .copy-btn { color: #f59e0b !important; }
     background: rgba(37, 99, 235, 0.08);
     color: #1d4ed8;
 }
+#stats-period-toolbar {
+    backdrop-filter: blur(6px);
+}
+.stats-period-preset-btn {
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.stats-period-preset-btn:hover {
+    transform: translateY(-1px);
+}
 
 /* TEMA OSCURO - ESTAD�STICAS */
 body[data-theme="dark"] .stat-card {
@@ -672,6 +747,22 @@ body[data-theme="dark"] #notes-heatmap-legend {
 body[data-theme="dark"] .tag-pill {
     background: rgba(59, 130, 246, 0.22);
     color: #bfdbfe;
+}
+body[data-theme="dark"] #stats-period-toolbar {
+    background: rgba(15, 23, 42, 0.72) !important;
+    border-color: rgba(148, 163, 184, 0.3) !important;
+}
+body[data-theme="dark"] .stats-period-preset-btn.bg-slate-100 {
+    background-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+body[data-theme="dark"] .stats-period-preset-btn.bg-slate-100:hover {
+    background-color: #475569 !important;
+}
+body[data-theme="dark"] #stats-compare-subtitle,
+body[data-theme="dark"] #stats-period-active-label,
+body[data-theme="dark"] #stats-period-distribution-label {
+    color: #94a3b8 !important;
 }
 body[data-theme="dark"] .highlight-surface {
     background: rgba(37, 99, 235, 0.16);

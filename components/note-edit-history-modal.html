@@ -1,0 +1,22 @@
+<!-- MODAL DE HISTORIAL DE EDICION -->
+<div id="note-history-modal" class="modal fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-40 transition-opacity duration-300">
+    <div id="note-history-modal-content" class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-3xl transform transition-all duration-300 scale-95 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start gap-4 mb-4">
+            <div>
+                <h2 class="text-2xl font-semibold text-slate-900">Historial de edicion</h2>
+                <p id="note-history-note-title" class="text-sm text-slate-500 mt-1">Nota</p>
+            </div>
+            <button id="close-note-history-modal-btn" title="Cerrar" class="text-slate-500 hover:text-red-600 transition p-1 rounded-full hover:bg-slate-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+            </button>
+        </div>
+
+        <p id="note-history-summary" class="text-sm text-slate-500 mb-4"></p>
+
+        <p id="note-history-empty" class="text-sm text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-4 py-3 hidden">
+            Esta nota todavia no tiene eventos de historial registrados.
+        </p>
+
+        <ol id="note-history-timeline" class="space-y-4"></ol>
+    </div>
+</div>

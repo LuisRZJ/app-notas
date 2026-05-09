@@ -4,10 +4,78 @@
         <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">Análisis Temporal</span>
     </div>
 
+    <div id="stats-compare-controls" class="detail-card p-4 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+            <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Selector de comparación</h3>
+            <p id="stats-compare-subtitle" class="text-xs text-slate-500">Ajusta el período principal y el comparativo.</p>
+        </div>
+
+        <div id="stats-year-controls" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="text-xs font-medium text-slate-600">Año principal
+                <select id="stats-primary-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Año de comparación
+                <select id="stats-secondary-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+            </label>
+        </div>
+
+        <div id="stats-month-controls" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            <div class="grid grid-cols-2 gap-2">
+                <label class="text-xs font-medium text-slate-600">Mes principal
+                    <select id="stats-primary-month-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+                <label class="text-xs font-medium text-slate-600">Año
+                    <select id="stats-primary-month-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="text-xs font-medium text-slate-600">Mes comparación
+                    <select id="stats-secondary-month-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+                <label class="text-xs font-medium text-slate-600">Año
+                    <select id="stats-secondary-month-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+            </div>
+        </div>
+
+        <div id="stats-quarter-controls" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            <div class="grid grid-cols-2 gap-2">
+                <label class="text-xs font-medium text-slate-600">Trimestre principal
+                    <select id="stats-primary-quarter-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700">
+                        <option value="1">Q1</option>
+                        <option value="2">Q2</option>
+                        <option value="3">Q3</option>
+                        <option value="4">Q4</option>
+                    </select>
+                </label>
+                <label class="text-xs font-medium text-slate-600">Año
+                    <select id="stats-primary-quarter-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="text-xs font-medium text-slate-600">Trimestre comparación
+                    <select id="stats-secondary-quarter-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700">
+                        <option value="1">Q1</option>
+                        <option value="2">Q2</option>
+                        <option value="3">Q3</option>
+                        <option value="4">Q4</option>
+                    </select>
+                </label>
+                <label class="text-xs font-medium text-slate-600">Año
+                    <select id="stats-secondary-quarter-year-select" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-slate-700"></select>
+                </label>
+            </div>
+        </div>
+
+        <p id="stats-rolling-compare-info" class="hidden mt-3 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+            Se comparará automáticamente contra el período inmediatamente anterior equivalente.
+        </p>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
         <article aria-labelledby="monthly-comparison-heading" class="detail-card p-6 flex flex-col h-full">
-            <h3 id="monthly-comparison-heading" class="text-lg font-bold text-slate-800 mb-2">Evolución Anual</h3>
-            <p class="text-sm text-slate-500 mb-6">Comparativa de notas creadas por mes entre el año actual y el anterior.</p>
+            <h3 id="monthly-comparison-heading" class="text-lg font-bold text-slate-800 mb-2">Comparación de períodos</h3>
+            <p class="text-sm text-slate-500 mb-6">Visualiza diferencias entre el período principal y el período de comparación seleccionado.</p>
             <div id="monthly-comparison-message" class="text-sm font-medium mb-4 rounded-lg hidden aria-hidden='true'"></div>
             <div class="relative w-full h-[300px] flex-grow">
                 <canvas id="monthly-comparison-chart" aria-label="Gráfico de barras de evolución anual"></canvas>

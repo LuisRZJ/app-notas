@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless Function: /api/backup
  *
- * GET  /api/backup  → Lee los 4 archivos JSON desde el repositorio privado de GitHub
+ * GET  /api/backup  → Lee los 5 archivos JSON desde el repositorio privado de GitHub
  * PUT  /api/backup  → Escribe el snapshot completo en el repositorio privado de GitHub
  *
  * Requiere las siguientes variables de entorno en Vercel:
@@ -13,7 +13,7 @@
 const GITHUB_OWNER = 'LuisRZJ';
 const GITHUB_REPO = 'Base-de-datos-app-notas';
 const DATA_PATH = 'data';
-const FILES = ['notes', 'tags', 'settings', 'sessions'];
+const FILES = ['notes', 'tags', 'settings', 'sessions', 'editHistory'];
 
 /**
  * Cabeceras comunes para la GitHub Contents API
@@ -125,11 +125,11 @@ module.exports = async function handler(req, res) {
     // ─── PUT: Escribir datos en GitHub ───────────────────────────────────────────
     if (req.method === 'PUT') {
         try {
-            const { notes = [], tags = [], settings = {}, sessions = [] } = req.body;
+            const { notes = [], tags = [], settings = {}, sessions = [], editHistory = [] } = req.body;
             const timestamp = new Date().toISOString();
             // Inyectar __backedUpAt en settings para que otros dispositivos puedan
             // detectar si la nube tiene datos más recientes que los locales.
-            const payload = { notes, tags, settings: { __backedUpAt: timestamp, ...settings }, sessions };
+            const payload = { notes, tags, settings: { __backedUpAt: timestamp, ...settings }, sessions, editHistory };
 
             // Escribir archivos de forma secuencial: cada PUT espera
             // a que el anterior termine, evitando conflictos de SHA.

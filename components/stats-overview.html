@@ -7,6 +7,20 @@
         <span id="stats-last-update" class="text-xs font-medium text-slate-500 bg-slate-200 px-3 py-1 rounded-full" title="Última actualización disponible">Actualizado: --</span>
     </div>
 
+    <div id="stats-period-toolbar" class="mb-6 bg-white/70 border border-slate-200 rounded-2xl p-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div id="stats-period-presets" class="flex flex-wrap gap-2">
+                <button type="button" data-period-mode="year" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-blue-600 text-white">Año</button>
+                <button type="button" data-period-mode="month" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Mes</button>
+                <button type="button" data-period-mode="quarter" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Trimestre</button>
+                <button type="button" data-period-mode="rolling7" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">7 días</button>
+                <button type="button" data-period-mode="rolling30" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">30 días</button>
+                <button type="button" data-period-mode="rolling90" class="stats-period-preset-btn text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">90 días</button>
+            </div>
+            <p id="stats-period-active-label" class="text-sm text-slate-600 font-medium">Período activo: --</p>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         <article class="stat-card p-6 border border-slate-200/60 shadow-md">
             <div class="stat-card-content">

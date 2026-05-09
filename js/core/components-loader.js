@@ -134,9 +134,11 @@ async function loadComponents() {
         // Marcar página activa en navegación
         setActiveNavPage(pageType);
         
-        // Cargar modal de formulario de notas (en páginas de notas e historial)
+        // Cargar modales de notas (en páginas de notas e historial)
         if (pageType === 'notes' || pageType === 'history') {
             await loadComponent('./components/note-form-modal.html', 'note-form-modal-component');
+            await loadComponent('./components/note-read-modal.html', 'note-read-modal-component');
+            await loadComponent('./components/note-edit-history-modal.html', 'note-history-modal-component');
         }
         
         // Cargar modales de confirmación (en páginas de notas e historial)

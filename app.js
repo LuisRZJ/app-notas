@@ -84,6 +84,20 @@ document.addEventListener('componentsLoaded', () => {
     const tagsList = document.getElementById('tags-list');
     const deleteOneModal = document.getElementById('delete-one-modal');
     const deleteAllModal = document.getElementById('delete-all-modal');
+    const noteReadModal = document.getElementById('note-read-modal');
+    const noteReadModalContent = document.getElementById('note-read-modal-content');
+    const closeNoteReadModalBtn = document.getElementById('close-note-read-modal-btn');
+    const noteReadTitle = document.getElementById('note-read-title');
+    const noteReadDate = document.getElementById('note-read-date');
+    const noteReadTags = document.getElementById('note-read-tags');
+    const noteReadContent = document.getElementById('note-read-content');
+    const noteHistoryModal = document.getElementById('note-history-modal');
+    const noteHistoryModalContent = document.getElementById('note-history-modal-content');
+    const closeNoteHistoryModalBtn = document.getElementById('close-note-history-modal-btn');
+    const noteHistoryNoteTitle = document.getElementById('note-history-note-title');
+    const noteHistorySummary = document.getElementById('note-history-summary');
+    const noteHistoryEmpty = document.getElementById('note-history-empty');
+    const noteHistoryTimeline = document.getElementById('note-history-timeline');
 
     const showNoteFormBtn = document.getElementById('show-note-form-btn');
     const currentDateDisplay = document.getElementById('current-date-display');
@@ -155,6 +169,7 @@ document.addEventListener('componentsLoaded', () => {
 
     const SETTINGS_STORE = 'settings';
     const SESSIONS_STORE = 'sessions';
+    const EDIT_HISTORY_STORE = 'editHistory';
     const BIRTHDAY_KEY = 'birthday';
     const USER_NAME_KEY = 'userName';
     const WEBHOOK_URL_KEY = 'discordWebhookUrl';
@@ -338,7 +353,7 @@ document.addEventListener('componentsLoaded', () => {
         }
     }
 
-    const request = indexedDB.open('NotesDB', 7);
+    const request = indexedDB.open('NotesDB', 8);
     request.onerror = (e) => console.error('Error DB:', e);
     request.onupgradeneeded = (e) => {
         db = e.target.result;
@@ -354,6 +369,11 @@ document.addEventListener('componentsLoaded', () => {
         }
         if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
             db.createObjectStore(SESSIONS_STORE, { keyPath: 'id', autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(EDIT_HISTORY_STORE)) {
+            const historyStore = db.createObjectStore(EDIT_HISTORY_STORE, { keyPath: 'id', autoIncrement: true });
+            historyStore.createIndex('noteHistoryId', 'noteHistoryId', { unique: false });
+            historyStore.createIndex('timestamp', 'timestamp', { unique: false });
         }
         if (e.oldVersion < 5 && tx.objectStoreNames.contains('notes')) {
             const noteStore = tx.objectStore('notes');
@@ -513,6 +533,62 @@ document.addEventListener('componentsLoaded', () => {
         transaction.onerror = () => reject(transaction.error);
         transaction.onabort = () => reject(transaction.error || new Error('Transacción abortada.'));
     });
+
+    const sanitizeTagColor = (value) => {
+        if (typeof value !== 'string') return '#cbd5e1';
+        const trimmed = value.trim();
+        return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : '#cbd5e1';
+    };
+
+    const renderMarkdownInto = (element, value) => {
+        if (!element) return;
+        element.classList.add('markdown-content', 'note-markdown-content');
+        if (window.NoteMarkdown && typeof window.NoteMarkdown.renderInto === 'function') {
+            window.NoteMarkdown.renderInto(element, value || '');
+        } else {
+            element.textContent = value || '';
+        }
+    };
+
+    const generateNoteHistoryId = () => {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return `note-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+    };
+
+    const resolveNoteHistoryId = (note, fallbackId) => {
+        const existing = typeof note?.historyId === 'string' ? note.historyId.trim() : '';
+        if (existing) return existing;
+        if (typeof fallbackId === 'number' && Number.isFinite(fallbackId)) return `legacy-${fallbackId}`;
+        if (typeof note?.id === 'number' && Number.isFinite(note.id)) return `legacy-${note.id}`;
+        return generateNoteHistoryId();
+    };
+
+    const normalizeTags = (tags) => Array.isArray(tags)
+        ? tags.filter(tag => typeof tag === 'string').map(tag => tag.trim()).filter(Boolean)
+        : [];
+
+    const buildNoteSnapshot = (note) => ({
+        id: typeof note?.id === 'number' ? note.id : null,
+        title: typeof note?.title === 'string' ? note.title : 'Nota sin título',
+        content: typeof note?.content === 'string' ? note.content : '',
+        tags: normalizeTags(note?.tags)
+    });
+
+    const areTagArraysEqual = (a, b) => {
+        if (a.length !== b.length) return false;
+        return a.every((value, index) => value === b[index]);
+    };
+
+    const getChangedFields = (beforeSnapshot, afterSnapshot) => {
+        const changed = [];
+        if ((beforeSnapshot?.title || '') !== (afterSnapshot?.title || '')) changed.push('title');
+        if ((beforeSnapshot?.content || '') !== (afterSnapshot?.content || '')) changed.push('content');
+        if (!areTagArraysEqual(beforeSnapshot?.tags || [], afterSnapshot?.tags || [])) changed.push('tags');
+        if ((beforeSnapshot?.id ?? null) !== (afterSnapshot?.id ?? null)) changed.push('date');
+        return changed;
+    };
 
     const getDaysInMonth = (month) => {
         if (!month) return 31;
@@ -915,6 +991,7 @@ document.addEventListener('componentsLoaded', () => {
         if (!db) return reject(new Error('Base de datos no disponible'));
         const storeNames = ['notes', 'tags', SETTINGS_STORE];
         if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
+        if (db.objectStoreNames.contains(EDIT_HISTORY_STORE)) storeNames.push(EDIT_HISTORY_STORE);
         const tx = db.transaction(storeNames, 'readonly');
 
         const reads = [
@@ -939,11 +1016,14 @@ document.addEventListener('componentsLoaded', () => {
             }),
             db.objectStoreNames.contains(SESSIONS_STORE)
                 ? new Promise(res => { tx.objectStore(SESSIONS_STORE).getAll().onsuccess = e => res(e.target.result || []); })
+                : Promise.resolve([]),
+            db.objectStoreNames.contains(EDIT_HISTORY_STORE)
+                ? new Promise(res => { tx.objectStore(EDIT_HISTORY_STORE).getAll().onsuccess = e => res(e.target.result || []); })
                 : Promise.resolve([])
         ];
 
         Promise.all(reads)
-            .then(([notes, tags, settings, sessions]) => resolve({ notes, tags, settings, sessions }))
+            .then(([notes, tags, settings, sessions, editHistory]) => resolve({ notes, tags, settings, sessions, editHistory }))
             .catch(reject);
     });
 
@@ -952,9 +1032,10 @@ document.addEventListener('componentsLoaded', () => {
         if (!db) return reject(new Error('Base de datos no disponible'));
 
         getApiSecret().then((localApiSecret) => {
-            const { notes = [], tags = [], settings = {}, sessions = [] } = data;
+            const { notes = [], tags = [], settings = {}, sessions = [], editHistory = [] } = data;
             const storeNames = ['notes', 'tags', SETTINGS_STORE];
             if (db.objectStoreNames.contains(SESSIONS_STORE)) storeNames.push(SESSIONS_STORE);
+            if (db.objectStoreNames.contains(EDIT_HISTORY_STORE)) storeNames.push(EDIT_HISTORY_STORE);
 
             const tx = db.transaction(storeNames, 'readwrite');
             storeNames.forEach(name => tx.objectStore(name).clear());
@@ -982,6 +1063,14 @@ document.addEventListener('componentsLoaded', () => {
                 sessions.forEach(s => {
                     const { id: _id, ...rest } = s;
                     tx.objectStore(SESSIONS_STORE).add(rest);
+                });
+            }
+
+            if (db.objectStoreNames.contains(EDIT_HISTORY_STORE)) {
+                editHistory.forEach(entry => {
+                    if (entry && typeof entry === 'object') {
+                        tx.objectStore(EDIT_HISTORY_STORE).put(entry);
+                    }
                 });
             }
             tx.oncomplete = () => resolve();
@@ -1960,38 +2049,292 @@ document.addEventListener('componentsLoaded', () => {
         };
     };
 
-    const createNoteElement = (note, tagsMap) => {
-        const div = document.createElement('div');
-        div.className = 'note-card bg-white p-5 rounded-xl shadow-md flex flex-col justify-between transition-transform transform hover:-translate-y-1';
-
-        let tagsEl = '<div class="flex flex-wrap gap-2">';
-        if (Array.isArray(note.tags)) {
-            note.tags.forEach(tagName => {
-                const tag = tagsMap[tagName];
-                if (tag) {
-                    tagsEl += `<span class="text-xs font-semibold px-2.5 py-0.5 rounded-full" style="background-color:${tag.color}; color:${getContrastingTextColor(tag.color)};">${tagName}</span>`;
-                }
-            });
-        }
-        tagsEl += '</div>';
-
-        div.innerHTML = `
-            <div class="flex-grow">
-                <h3 class="text-xl font-bold mb-1 text-slate-800">${note.title}</h3>
-                <p class="text-xs text-slate-400 mb-3">${new Date(note.id).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' })}</p>
-                <p class="text-slate-600" style="white-space: pre-wrap;">${note.content}</p>
-            </div>
-            <div class="flex justify-between items-center pt-3 mt-4 border-t border-slate-200">
-                <div class="flex-grow overflow-hidden pr-2">${tagsEl}</div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button data-id="${note.id}" class="edit-one-btn text-slate-500 hover:text-blue-600 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-pen-line pointer-events-none"><path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/><path d="M8 18h1"/><path d="M18.4 9.6a2 2 0 1 1 3 3L17 17l-4 1 1-4Z"/></svg></button>
-                    <button data-id="${note.id}" class="delete-one-btn text-slate-500 hover:text-red-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2 pointer-events-none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
-                </div>
-            </div>`;
-        return div;
+    const createTagChipElement = (tagName, tagData) => {
+        const chip = document.createElement('span');
+        chip.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full';
+        const safeColor = sanitizeTagColor(tagData?.color);
+        chip.style.backgroundColor = safeColor;
+        chip.style.color = getContrastingTextColor(safeColor);
+        chip.textContent = tagName;
+        return chip;
     };
 
-    const saveNote = () => {
+    const createNoteElement = (note, tagsMap) => {
+        const noteId = typeof note?.id === 'number' ? note.id : Date.now();
+        const noteHistoryId = resolveNoteHistoryId(note, noteId);
+
+        const card = document.createElement('div');
+        card.className = 'note-card bg-white p-5 rounded-xl shadow-md flex flex-col justify-between transition-transform transform hover:-translate-y-1';
+        card.dataset.id = String(noteId);
+        card.dataset.historyId = noteHistoryId;
+
+        const body = document.createElement('div');
+        body.className = 'flex-grow';
+
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'text-xl font-bold mb-1 text-slate-800';
+        titleEl.textContent = typeof note?.title === 'string' && note.title.trim() ? note.title : 'Nota sin título';
+
+        const dateEl = document.createElement('p');
+        dateEl.className = 'text-xs text-slate-400 mb-3';
+        dateEl.textContent = new Date(noteId).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+
+        const preview = document.createElement('div');
+        preview.className = 'note-content-preview note-preview--collapsed text-left w-full border border-slate-200 rounded-lg p-3 bg-slate-50 hover:bg-slate-100 transition cursor-pointer';
+        preview.setAttribute('role', 'button');
+        preview.setAttribute('tabindex', '0');
+        preview.setAttribute('aria-label', 'Abrir nota completa');
+        preview.dataset.id = String(noteId);
+        preview.dataset.historyId = noteHistoryId;
+
+        const previewContent = document.createElement('div');
+        previewContent.className = 'text-slate-600 leading-relaxed';
+        renderMarkdownInto(previewContent, typeof note?.content === 'string' ? note.content : '');
+
+        const previewFade = document.createElement('div');
+        previewFade.className = 'note-preview-fade';
+
+        preview.appendChild(previewContent);
+        preview.appendChild(previewFade);
+
+        const previewHint = document.createElement('p');
+        previewHint.className = 'text-xs font-semibold text-blue-600 mt-2';
+        previewHint.textContent = 'Haz clic para ver completa';
+
+        body.appendChild(titleEl);
+        body.appendChild(dateEl);
+        body.appendChild(preview);
+        body.appendChild(previewHint);
+
+        const footer = document.createElement('div');
+        footer.className = 'flex justify-between items-center pt-3 mt-4 border-t border-slate-200 gap-3';
+
+        const tagsWrapper = document.createElement('div');
+        tagsWrapper.className = 'flex-grow overflow-hidden pr-2';
+
+        const tagsRow = document.createElement('div');
+        tagsRow.className = 'flex flex-wrap gap-2';
+        normalizeTags(note?.tags).forEach((tagName) => {
+            const tagData = tagsMap[tagName];
+            if (!tagData) return;
+            tagsRow.appendChild(createTagChipElement(tagName, tagData));
+        });
+        tagsWrapper.appendChild(tagsRow);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-2 flex-shrink-0';
+
+        const historyBtn = document.createElement('button');
+        historyBtn.className = 'history-one-btn text-slate-500 hover:text-indigo-600 transition';
+        historyBtn.dataset.id = String(noteId);
+        historyBtn.dataset.historyId = noteHistoryId;
+        historyBtn.title = 'Ver historial';
+        historyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none"><path d="M12 8v5l3 3"/><circle cx="12" cy="12" r="10"/></svg>';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-one-btn text-slate-500 hover:text-blue-600 transition';
+        editBtn.dataset.id = String(noteId);
+        editBtn.title = 'Editar nota';
+        editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none"><path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/><path d="M8 18h1"/><path d="M18.4 9.6a2 2 0 1 1 3 3L17 17l-4 1 1-4Z"/></svg>';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-one-btn text-slate-500 hover:text-red-700 transition';
+        deleteBtn.dataset.id = String(noteId);
+        deleteBtn.title = 'Eliminar nota';
+        deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+        actions.appendChild(historyBtn);
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+
+        footer.appendChild(tagsWrapper);
+        footer.appendChild(actions);
+
+        card.appendChild(body);
+        card.appendChild(footer);
+        return card;
+    };
+
+    const fetchNoteById = async (noteId) => {
+        if (!db) return null;
+        try {
+            return await requestToPromise(
+                db.transaction('notes', 'readonly').objectStore('notes').get(noteId)
+            );
+        } catch (error) {
+            console.warn('No se pudo cargar la nota solicitada:', error);
+            return null;
+        }
+    };
+
+    const fetchTagsMap = async () => {
+        if (!db) return {};
+        try {
+            const tags = await requestToPromise(
+                db.transaction('tags', 'readonly').objectStore('tags').getAll()
+            );
+            return (tags || []).reduce((acc, tag) => {
+                if (tag?.name) acc[tag.name] = tag;
+                return acc;
+            }, {});
+        } catch (error) {
+            console.warn('No se pudieron cargar las etiquetas para la vista de lectura:', error);
+            return {};
+        }
+    };
+
+    const showReadNoteModal = async (noteId) => {
+        if (!noteReadModal) return;
+        const note = await fetchNoteById(noteId);
+        if (!note) return;
+
+        if (noteReadTitle) {
+            noteReadTitle.textContent = typeof note.title === 'string' && note.title.trim()
+                ? note.title
+                : 'Nota sin título';
+        }
+        if (noteReadDate) {
+            noteReadDate.textContent = new Date(note.id).toLocaleString('es-ES', {
+                dateStyle: 'long',
+                timeStyle: 'short'
+            });
+        }
+        if (noteReadContent) {
+            renderMarkdownInto(noteReadContent, note.content || '');
+        }
+        if (noteReadTags) {
+            noteReadTags.innerHTML = '';
+            const tagsMap = await fetchTagsMap();
+            normalizeTags(note.tags).forEach((tagName) => {
+                const tagData = tagsMap[tagName];
+                if (!tagData) return;
+                noteReadTags.appendChild(createTagChipElement(tagName, tagData));
+            });
+        }
+
+        showModal(noteReadModal);
+    };
+
+    const getHistoryActionMeta = (action) => {
+        switch (action) {
+            case 'create':
+                return { label: 'Creación', badgeClass: 'bg-emerald-100 text-emerald-700' };
+            case 'delete':
+                return { label: 'Eliminación', badgeClass: 'bg-rose-100 text-rose-700' };
+            default:
+                return { label: 'Edición', badgeClass: 'bg-blue-100 text-blue-700' };
+        }
+    };
+
+    const formatHistoryFieldLabels = (fields = []) => {
+        const labels = {
+            title: 'título',
+            content: 'contenido',
+            tags: 'etiquetas',
+            date: 'fecha/hora'
+        };
+        const translated = fields.map(field => labels[field]).filter(Boolean);
+        return translated.length > 0 ? translated.join(', ') : 'sin cambios detectados';
+    };
+
+    const buildSnapshotExcerpt = (snapshot) => {
+        if (!snapshot) return '';
+        const title = snapshot.title || 'Sin título';
+        const content = (snapshot.content || '').trim();
+        const shortContent = content.length > 160 ? `${content.slice(0, 160)}...` : content;
+        return `${title}${shortContent ? ` · ${shortContent}` : ''}`;
+    };
+
+    const createHistoryTimelineItem = (entry) => {
+        const actionMeta = getHistoryActionMeta(entry.action);
+        const listItem = document.createElement('li');
+        listItem.className = 'note-history-item border border-slate-200 rounded-xl p-4 bg-slate-50';
+
+        const topRow = document.createElement('div');
+        topRow.className = 'flex flex-wrap items-center justify-between gap-2';
+
+        const actionBadge = document.createElement('span');
+        actionBadge.className = `text-xs font-semibold px-2.5 py-1 rounded-full ${actionMeta.badgeClass}`;
+        actionBadge.textContent = actionMeta.label;
+
+        const timestampEl = document.createElement('span');
+        timestampEl.className = 'text-xs text-slate-500';
+        timestampEl.textContent = new Date(entry.timestamp).toLocaleString('es-ES', {
+            dateStyle: 'long',
+            timeStyle: 'short'
+        });
+
+        topRow.appendChild(actionBadge);
+        topRow.appendChild(timestampEl);
+
+        const changedFieldsEl = document.createElement('p');
+        changedFieldsEl.className = 'text-sm text-slate-600 mt-3';
+        changedFieldsEl.textContent = `Cambios: ${formatHistoryFieldLabels(entry.changedFields || [])}`;
+
+        const beforeEl = document.createElement('p');
+        beforeEl.className = 'text-xs text-slate-500 mt-2';
+        beforeEl.textContent = `Antes: ${buildSnapshotExcerpt(entry.before) || 'No disponible'}`;
+
+        const afterEl = document.createElement('p');
+        afterEl.className = 'text-xs text-slate-500 mt-1';
+        afterEl.textContent = `Después: ${buildSnapshotExcerpt(entry.after) || 'No disponible'}`;
+
+        listItem.appendChild(topRow);
+        listItem.appendChild(changedFieldsEl);
+        listItem.appendChild(beforeEl);
+        listItem.appendChild(afterEl);
+
+        return listItem;
+    };
+
+    const showNoteHistoryModal = async (noteId, historyId) => {
+        if (!noteHistoryModal || !noteHistoryTimeline || !db) return;
+
+        const note = await fetchNoteById(noteId);
+        const noteHistoryId = historyId || resolveNoteHistoryId(note, noteId);
+
+        if (noteHistoryNoteTitle) {
+            const title = typeof note?.title === 'string' && note.title.trim() ? note.title : 'Nota sin título';
+            noteHistoryNoteTitle.textContent = title;
+        }
+
+        let entries = [];
+        if (db.objectStoreNames.contains(EDIT_HISTORY_STORE)) {
+            try {
+                const tx = db.transaction(EDIT_HISTORY_STORE, 'readonly');
+                const store = tx.objectStore(EDIT_HISTORY_STORE);
+                const request = store.indexNames.contains('noteHistoryId')
+                    ? store.index('noteHistoryId').getAll(noteHistoryId)
+                    : store.getAll();
+                const allEntries = await requestToPromise(request);
+                entries = (allEntries || [])
+                    .filter((entry) => !store.indexNames.contains('noteHistoryId') ? entry.noteHistoryId === noteHistoryId : true)
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            } catch (error) {
+                console.warn('No se pudo obtener el historial de la nota:', error);
+            }
+        }
+
+        if (noteHistorySummary) {
+            noteHistorySummary.textContent = entries.length > 0
+                ? `Se registraron ${entries.length} evento(s) para esta nota.`
+                : 'No hay eventos registrados para esta nota todavía.';
+        }
+
+        noteHistoryTimeline.innerHTML = '';
+        if (entries.length === 0) {
+            noteHistoryEmpty?.classList.remove('hidden');
+        } else {
+            noteHistoryEmpty?.classList.add('hidden');
+            entries.forEach((entry) => {
+                noteHistoryTimeline.appendChild(createHistoryTimelineItem(entry));
+            });
+        }
+
+        showModal(noteHistoryModal);
+    };
+
+    const saveNote = async () => {
         const title = noteTitleInput.value.trim();
         const content = noteContentInput.value.trim();
         const selectedTags = [...tagsDropdown.querySelectorAll('input:checked')].map(cb => cb.value);
@@ -2007,18 +2350,98 @@ document.addEventListener('componentsLoaded', () => {
                 : Date.now();
         }
 
-        const tx = db.transaction('notes', 'readwrite');
-        const store = tx.objectStore('notes');
+        const previousNote = noteIdToEdit !== null ? await fetchNoteById(noteIdToEdit) : null;
+        const noteHistoryId = resolveNoteHistoryId(previousNote, noteIdToEdit);
+
+        const noteData = {
+            id: noteTimestamp,
+            historyId: previousNote?.historyId || noteHistoryId,
+            title: title || 'Nota sin título',
+            content,
+            tags: normalizeTags(selectedTags),
+            updatedAt: new Date().toISOString()
+        };
+
+        const stores = ['notes'];
+        const canWriteHistory = db.objectStoreNames.contains(EDIT_HISTORY_STORE);
+        if (canWriteHistory) stores.push(EDIT_HISTORY_STORE);
+
+        const tx = db.transaction(stores, 'readwrite');
+        const notesStore = tx.objectStore('notes');
+
         if (noteIdToEdit !== null && noteIdToEdit !== noteTimestamp) {
-            store.delete(noteIdToEdit);
+            notesStore.delete(noteIdToEdit);
         }
-        const noteData = { id: noteTimestamp, title: title || 'Nota sin título', content, tags: selectedTags, updatedAt: new Date().toISOString() };
-        store.put(noteData);
+
+        notesStore.put(noteData);
+
+        if (canWriteHistory) {
+            const historyStore = tx.objectStore(EDIT_HISTORY_STORE);
+            const timestamp = new Date().toISOString();
+
+            if (!previousNote) {
+                historyStore.add({
+                    noteHistoryId: noteData.historyId,
+                    noteId: noteData.id,
+                    action: 'create',
+                    timestamp,
+                    changedFields: ['title', 'content', 'tags', 'date'],
+                    before: null,
+                    after: buildNoteSnapshot(noteData)
+                });
+            } else {
+                const beforeSnapshot = buildNoteSnapshot(previousNote);
+                const afterSnapshot = buildNoteSnapshot(noteData);
+                const changedFields = getChangedFields(beforeSnapshot, afterSnapshot);
+
+                if (changedFields.length > 0) {
+                    historyStore.add({
+                        noteHistoryId: noteData.historyId,
+                        noteId: noteData.id,
+                        action: 'update',
+                        timestamp,
+                        changedFields,
+                        before: beforeSnapshot,
+                        after: afterSnapshot
+                    });
+                }
+            }
+        }
+
         tx.oncomplete = () => {
             resetForm();
             refreshActiveView();
             triggerAutoBackup();
         };
+        tx.onerror = () => {
+            console.error('No se pudo guardar la nota:', tx.error);
+        };
+    };
+
+    const deleteNoteWithHistory = async (noteId) => {
+        const note = await fetchNoteById(noteId);
+        if (!note) return;
+
+        const stores = ['notes'];
+        const canWriteHistory = db.objectStoreNames.contains(EDIT_HISTORY_STORE);
+        if (canWriteHistory) stores.push(EDIT_HISTORY_STORE);
+
+        const tx = db.transaction(stores, 'readwrite');
+        tx.objectStore('notes').delete(noteId);
+
+        if (canWriteHistory) {
+            tx.objectStore(EDIT_HISTORY_STORE).add({
+                noteHistoryId: resolveNoteHistoryId(note, noteId),
+                noteId,
+                action: 'delete',
+                timestamp: new Date().toISOString(),
+                changedFields: ['title', 'content', 'tags', 'date'],
+                before: buildNoteSnapshot(note),
+                after: null
+            });
+        }
+
+        await transactionToPromise(tx);
     };
 
     const startEditingNote = (noteId) => {
@@ -2071,15 +2494,18 @@ document.addEventListener('componentsLoaded', () => {
         try {
             const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
             const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+            const hasEditHistoryStore = db.objectStoreNames.contains(EDIT_HISTORY_STORE);
 
             const stores = ['notes', 'tags'];
             if (hasSettingsStore) stores.push(SETTINGS_STORE);
             if (hasSessionsStore) stores.push(SESSIONS_STORE);
+            if (hasEditHistoryStore) stores.push(EDIT_HISTORY_STORE);
 
             const tx = db.transaction(stores, 'readonly');
             const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
             const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
             const sessionsPromise = hasSessionsStore ? requestToPromise(tx.objectStore(SESSIONS_STORE).getAll()) : Promise.resolve([]);
+            const editHistoryPromise = hasEditHistoryStore ? requestToPromise(tx.objectStore(EDIT_HISTORY_STORE).getAll()) : Promise.resolve([]);
 
             let themePreference = null;
             let storedUserName = null;
@@ -2102,16 +2528,17 @@ document.addEventListener('componentsLoaded', () => {
                 }
             }
 
-            const [notes, tags, sessions] = await Promise.all([notesPromise, tagsPromise, sessionsPromise]);
+            const [notes, tags, sessions, editHistory] = await Promise.all([notesPromise, tagsPromise, sessionsPromise, editHistoryPromise]);
 
             const exportObj = {
                 meta: {
-                    version: 2,
+                    version: 3,
                     exportedAt: new Date().toISOString()
                 },
                 notes: Array.isArray(notes) ? notes : [],
                 tags: Array.isArray(tags) ? tags : [],
                 sessions: Array.isArray(sessions) ? sessions : [],
+                editHistory: Array.isArray(editHistory) ? editHistory : [],
                 settings: {
                     theme: themePreference,
                     userName: storedUserName,
@@ -2146,15 +2573,18 @@ document.addEventListener('componentsLoaded', () => {
         try {
             const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
             const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+            const hasEditHistoryStore = db.objectStoreNames.contains(EDIT_HISTORY_STORE);
 
             const stores = ['notes', 'tags'];
             if (hasSettingsStore) stores.push(SETTINGS_STORE);
             if (hasSessionsStore) stores.push(SESSIONS_STORE);
+            if (hasEditHistoryStore) stores.push(EDIT_HISTORY_STORE);
 
             const tx = db.transaction(stores, 'readonly');
             const notesPromise = requestToPromise(tx.objectStore('notes').getAll());
             const tagsPromise = requestToPromise(tx.objectStore('tags').getAll());
             const sessionsPromise = hasSessionsStore ? requestToPromise(tx.objectStore(SESSIONS_STORE).getAll()) : Promise.resolve([]);
+            const editHistoryPromise = hasEditHistoryStore ? requestToPromise(tx.objectStore(EDIT_HISTORY_STORE).getAll()) : Promise.resolve([]);
 
             let themePreference = null;
             let storedUserName = null;
@@ -2177,7 +2607,7 @@ document.addEventListener('componentsLoaded', () => {
                 }
             }
 
-            const [notes, tags, sessions] = await Promise.all([notesPromise, tagsPromise, sessionsPromise]);
+            const [notes, tags, sessions, editHistory] = await Promise.all([notesPromise, tagsPromise, sessionsPromise, editHistoryPromise]);
 
             if (!storedWebhookUrl) {
                 throw new Error('No se ha configurado una URL de Webhook. Ve a la sección de Integraciones.');
@@ -2185,12 +2615,13 @@ document.addEventListener('componentsLoaded', () => {
 
             const exportObj = {
                 meta: {
-                    version: 2,
+                    version: 3,
                     exportedAt: new Date().toISOString()
                 },
                 notes: Array.isArray(notes) ? notes : [],
                 tags: Array.isArray(tags) ? tags : [],
                 sessions: Array.isArray(sessions) ? sessions : [],
+                editHistory: Array.isArray(editHistory) ? editHistory : [],
                 settings: {
                     theme: themePreference,
                     userName: storedUserName,
@@ -2254,11 +2685,13 @@ document.addEventListener('componentsLoaded', () => {
         const notesArray = Array.isArray(payload.notes) ? payload.notes : [];
         const tagsArray = Array.isArray(payload.tags) ? payload.tags : [];
         const sessionsArray = Array.isArray(payload.sessions) ? payload.sessions : [];
+        const editHistoryArray = Array.isArray(payload.editHistory) ? payload.editHistory : [];
         const rawSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : {};
 
         const sanitizedNotes = notesArray.filter(note => note && typeof note === 'object' && typeof note.id === 'number');
         const sanitizedTags = tagsArray.filter(tag => tag && typeof tag === 'object' && typeof tag.name === 'string');
         const sanitizedSessions = sessionsArray.filter(session => session && typeof session === 'object' && typeof session.duration === 'number');
+        const sanitizedEditHistory = editHistoryArray.filter(entry => entry && typeof entry === 'object' && typeof entry.noteHistoryId === 'string' && typeof entry.timestamp === 'string');
 
         const sanitizedSettings = {
             theme: typeof rawSettings.theme === 'string' ? sanitizeThemePreference(rawSettings.theme) : null,
@@ -2283,16 +2716,19 @@ document.addEventListener('componentsLoaded', () => {
 
         const hasSettingsStore = db.objectStoreNames.contains(SETTINGS_STORE);
         const hasSessionsStore = db.objectStoreNames.contains(SESSIONS_STORE);
+        const hasEditHistoryStore = db.objectStoreNames.contains(EDIT_HISTORY_STORE);
 
         const stores = ['notes', 'tags'];
         if (hasSettingsStore) stores.push(SETTINGS_STORE);
         if (hasSessionsStore) stores.push(SESSIONS_STORE);
+        if (hasEditHistoryStore) stores.push(EDIT_HISTORY_STORE);
 
         const tx = db.transaction(stores, 'readwrite');
         const notesStore = tx.objectStore('notes');
         const tagsStore = tx.objectStore('tags');
         const settingsStore = hasSettingsStore ? tx.objectStore(SETTINGS_STORE) : null;
         const sessionsStore = hasSessionsStore ? tx.objectStore(SESSIONS_STORE) : null;
+        const editHistoryStore = hasEditHistoryStore ? tx.objectStore(EDIT_HISTORY_STORE) : null;
 
         const clearPromises = [
             requestToPromise(notesStore.clear()),
@@ -2304,6 +2740,9 @@ document.addEventListener('componentsLoaded', () => {
         if (sessionsStore) {
             clearPromises.push(requestToPromise(sessionsStore.clear()));
         }
+        if (editHistoryStore) {
+            clearPromises.push(requestToPromise(editHistoryStore.clear()));
+        }
         await Promise.all(clearPromises);
 
         const writePromises = [
@@ -2313,6 +2752,9 @@ document.addEventListener('componentsLoaded', () => {
 
         if (sessionsStore) {
             writePromises.push(...sanitizedSessions.map(session => requestToPromise(sessionsStore.put(session))));
+        }
+        if (editHistoryStore) {
+            writePromises.push(...sanitizedEditHistory.map(entry => requestToPromise(editHistoryStore.put(entry))));
         }
 
         if (settingsStore) {
@@ -2370,6 +2812,7 @@ document.addEventListener('componentsLoaded', () => {
         const stores = ['notes', 'tags'];
         if (db.objectStoreNames.contains(SETTINGS_STORE)) stores.push(SETTINGS_STORE);
         if (db.objectStoreNames.contains(SESSIONS_STORE)) stores.push(SESSIONS_STORE);
+        if (db.objectStoreNames.contains(EDIT_HISTORY_STORE)) stores.push(EDIT_HISTORY_STORE);
 
         return new Promise((resolve, reject) => {
             // 2. Transacción de limpieza local
@@ -2439,6 +2882,8 @@ document.addEventListener('componentsLoaded', () => {
 
     if (showNoteFormBtn) showNoteFormBtn.addEventListener('click', showNoteFormModal);
     if (closeNoteModalBtn) closeNoteModalBtn.addEventListener('click', resetForm);
+    if (closeNoteReadModalBtn && noteReadModal) closeNoteReadModalBtn.addEventListener('click', () => hideModal(noteReadModal));
+    if (closeNoteHistoryModalBtn && noteHistoryModal) closeNoteHistoryModalBtn.addEventListener('click', () => hideModal(noteHistoryModal));
     if (saveNoteBtn) saveNoteBtn.addEventListener('click', saveNote);
     if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
     if (importNotesBtn && importFileInput) {
@@ -2467,6 +2912,20 @@ document.addEventListener('componentsLoaded', () => {
         noteFormModal.addEventListener('click', (e) => {
             if (e.target === noteFormModal) {
                 resetForm();
+            }
+        });
+    }
+    if (noteReadModal) {
+        noteReadModal.addEventListener('click', (e) => {
+            if (e.target === noteReadModal) {
+                hideModal(noteReadModal);
+            }
+        });
+    }
+    if (noteHistoryModal) {
+        noteHistoryModal.addEventListener('click', (e) => {
+            if (e.target === noteHistoryModal) {
+                hideModal(noteHistoryModal);
             }
         });
     }
@@ -2634,6 +3093,25 @@ document.addEventListener('componentsLoaded', () => {
     }
 
     document.body.addEventListener('click', (e) => {
+        const previewBtn = e.target.closest('.note-content-preview');
+        if (previewBtn) {
+            const noteId = parseInt(previewBtn.dataset.id || '', 10);
+            if (!Number.isNaN(noteId)) {
+                showReadNoteModal(noteId);
+            }
+            return;
+        }
+
+        const historyBtn = e.target.closest('.history-one-btn');
+        if (historyBtn) {
+            const noteId = parseInt(historyBtn.dataset.id || '', 10);
+            const historyId = historyBtn.dataset.historyId || '';
+            if (!Number.isNaN(noteId)) {
+                showNoteHistoryModal(noteId, historyId);
+            }
+            return;
+        }
+
         const deleteBtn = e.target.closest('.delete-one-btn');
         if (deleteBtn) {
             noteIdToDelete = parseInt(deleteBtn.dataset.id, 10);
@@ -2646,6 +3124,17 @@ document.addEventListener('componentsLoaded', () => {
         }
     });
 
+    document.body.addEventListener('keydown', (e) => {
+        const preview = e.target.closest('.note-content-preview');
+        if (!preview) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        const noteId = parseInt(preview.dataset.id || '', 10);
+        if (!Number.isNaN(noteId)) {
+            showReadNoteModal(noteId);
+        }
+    });
+
     [deleteOneModal, deleteAllModal].filter(Boolean).forEach(modal => {
         modal.addEventListener('click', async (e) => {
             if (e.target === modal || e.target.dataset.action === 'cancel') {
@@ -2653,10 +3142,13 @@ document.addEventListener('componentsLoaded', () => {
             }
             if (e.target.dataset.action === 'confirm') {
                 if (modal.id === 'delete-one-modal' && noteIdToDelete) {
-                    db.transaction('notes', 'readwrite').objectStore('notes').delete(noteIdToDelete).onsuccess = () => {
+                    try {
+                        await deleteNoteWithHistory(noteIdToDelete);
                         refreshActiveView();
                         triggerAutoBackup();
-                    };
+                    } catch (error) {
+                        console.error('No se pudo eliminar la nota:', error);
+                    }
                     noteIdToDelete = null;
                 } else if (modal.id === 'delete-all-modal') {
                     await clearAllData();

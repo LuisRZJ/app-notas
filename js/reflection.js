@@ -1,9 +1,10 @@
         document.addEventListener('componentsLoaded', () => {
             const DB_NAME = 'NotesDB';
-            const DB_VERSION = 7;
+            const DB_VERSION = 8;
             const NOTES_STORE = 'notes';
             const TAGS_STORE = 'tags';
             const SESSIONS_STORE = 'sessions';
+            const EDIT_HISTORY_STORE = 'editHistory';
             const QUOTE_API_URL = 'https://api.quotable.io/random?maxLength=160';
 
             const reflectionDateDisplay = document.getElementById('reflection-date-display');
@@ -93,6 +94,11 @@
                     if (!db.objectStoreNames.contains('sessions')) {
                         db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
                     }
+                    if (!db.objectStoreNames.contains(EDIT_HISTORY_STORE)) {
+                        const historyStore = db.createObjectStore(EDIT_HISTORY_STORE, { keyPath: 'id', autoIncrement: true });
+                        historyStore.createIndex('noteHistoryId', 'noteHistoryId', { unique: false });
+                        historyStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
                 };
 
             request.onsuccess = (event) => {
@@ -156,6 +162,16 @@
             const setTextContent = (element, value) => {
                 if (!element) return;
                 element.textContent = value;
+            };
+
+            const setMarkdownContent = (element, value) => {
+                if (!element) return;
+                element.classList.add('markdown-content', 'note-markdown-content');
+                if (window.NoteMarkdown && typeof window.NoteMarkdown.renderInto === 'function') {
+                    window.NoteMarkdown.renderInto(element, value || '');
+                } else {
+                    element.textContent = value || '';
+                }
             };
 
             const toggleBadge = (element, textValue) => {
@@ -360,14 +376,14 @@
                 if (randomNote) {
                     const noteDate = new Date(randomNote.id);
                     setTextContent(dailyNoteTitle, randomNote.title || 'Nota sin título');
-                    setTextContent(dailyNoteContent, randomNote.content || 'Sin contenido registrado.');
+                    setMarkdownContent(dailyNoteContent, randomNote.content || 'Sin contenido registrado.');
                     updateDateLabel(dailyNoteDateWrapper, noteDate);
                     const tagsCount = Array.isArray(randomNote.tags) ? randomNote.tags.length : 0;
                     toggleBadge(dailyNoteTagsBadge, tagsCount > 0 ? `${tagsCount} etiqueta${tagsCount === 1 ? '' : 's'}` : '');
                     renderTagChips(dailyNoteTagsList, randomNote.tags || [], tagsMap);
                 } else {
                     setTextContent(dailyNoteTitle, 'Aún no hay nota destacada.');
-                    setTextContent(dailyNoteContent, 'Registra notas o pulsa en "Actualizar resumen" más tarde.');
+                    setMarkdownContent(dailyNoteContent, 'Registra notas o pulsa en "Actualizar resumen" más tarde.');
                     updateDateLabel(dailyNoteDateWrapper, null);
                     toggleBadge(dailyNoteTagsBadge, '');
                     renderTagChips(dailyNoteTagsList, [], {});
@@ -385,7 +401,7 @@
                 if (chosenNote) {
                     const noteDate = new Date(chosenNote.id);
                     setTextContent(weekNoteTitle, chosenNote.title || 'Nota sin título');
-                    setTextContent(weekNoteContent, chosenNote.content || 'Sin contenido registrado.');
+                    setMarkdownContent(weekNoteContent, chosenNote.content || 'Sin contenido registrado.');
                     toggleBadge(weekNoteDateBadge, noteDate.toLocaleDateString('es-ES', {
                         weekday: 'short',
                         day: '2-digit',
@@ -393,7 +409,7 @@
                     }).replace(/\.$/, ''));
                 } else {
                     setTextContent(weekNoteTitle, 'Sin registros semanales.');
-                    setTextContent(weekNoteContent, 'Todavía no encontramos notas en la semana en curso.');
+                    setMarkdownContent(weekNoteContent, 'Todavía no encontramos notas en la semana en curso.');
                     toggleBadge(weekNoteDateBadge, '');
                 }
             };
@@ -417,7 +433,7 @@
                 if (note) {
                     const noteDate = new Date(note.id);
                     setTextContent(yearAgoTitle, note.title || 'Nota sin título');
-                    setTextContent(yearAgoContent, note.content || 'Sin contenido registrado.');
+                    setMarkdownContent(yearAgoContent, note.content || 'Sin contenido registrado.');
                     setTextContent(yearAgoDateEl, noteDate.toLocaleDateString('es-ES', {
                         year: 'numeric', month: 'long', day: 'numeric'
                     }));
@@ -426,7 +442,7 @@
                     }
                 } else {
                     setTextContent(yearAgoTitle, 'Sin notas almacenadas.');
-                    setTextContent(yearAgoContent, 'No encontramos notas registradas en esta fecha del año anterior.');
+                    setMarkdownContent(yearAgoContent, 'No encontramos notas registradas en esta fecha del año anterior.');
                     setTextContent(yearAgoDateEl, '');
                     if (yearAgoErrorEl) {
                         yearAgoErrorEl.textContent = 'No hay coincidencias para la fecha de hace un año.';
@@ -445,14 +461,14 @@
                 if (chosenNote) {
                     const noteDate = new Date(chosenNote.id);
                     setTextContent(currentYearTitle, chosenNote.title || 'Nota sin título');
-                    setTextContent(currentYearContent, chosenNote.content || 'Sin contenido registrado.');
+                    setMarkdownContent(currentYearContent, chosenNote.content || 'Sin contenido registrado.');
                     toggleBadge(currentYearDateBadge, noteDate.toLocaleDateString('es-ES', {
                         day: '2-digit',
                         month: 'long'
                     }));
                 } else {
                     setTextContent(currentYearTitle, 'Sin registros anuales.');
-                    setTextContent(currentYearContent, 'Necesitas al menos una nota en el año actual para ver resultados.');
+                    setMarkdownContent(currentYearContent, 'Necesitas al menos una nota en el año actual para ver resultados.');
                     toggleBadge(currentYearDateBadge, '');
                 }
             };

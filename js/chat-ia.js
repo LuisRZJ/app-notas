@@ -336,9 +336,29 @@ Responde solo con el texto del título, sin comillas ni puntos finales.`;
 
     async fetchContextData() {
         const DB_NAME = 'NotesDB';
-        const DB_VERSION = 7;
+        const DB_VERSION = 8;
         return new Promise((resolve) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('notes')) {
+                    db.createObjectStore('notes', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('tags')) {
+                    db.createObjectStore('tags', { keyPath: 'name' });
+                }
+                if (!db.objectStoreNames.contains('settings')) {
+                    db.createObjectStore('settings', { keyPath: 'key' });
+                }
+                if (!db.objectStoreNames.contains('sessions')) {
+                    db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains('editHistory')) {
+                    const historyStore = db.createObjectStore('editHistory', { keyPath: 'id', autoIncrement: true });
+                    historyStore.createIndex('noteHistoryId', 'noteHistoryId', { unique: false });
+                    historyStore.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+            };
             request.onerror = () => resolve({ notes: [], sessions: [] });
             request.onsuccess = (event) => {
                 const db = event.target.result;

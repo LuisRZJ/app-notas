@@ -13,7 +13,7 @@
 const GitHubSync = {
     /**
      * Respalda el snapshot completo de datos en GitHub.
-     * @param {{ notes: any[], tags: any[], settings: object, sessions: any[] }} data
+    * @param {{ notes: any[], tags: any[], settings: object, sessions: any[], editHistory: any[] }} data
      * @param {string} apiSecret - API Secret configurado en el panel de Ajustes
      * @returns {Promise<{ success: boolean, timestamp: string }>}
      */
@@ -38,7 +38,7 @@ const GitHubSync = {
     /**
      * Restaura el snapshot completo de datos desde GitHub.
      * @param {string} apiSecret - API Secret configurado en el panel de Ajustes
-     * @returns {Promise<{ notes: any[], tags: any[], settings: object, sessions: any[], backedUpAt: string }>}
+    * @returns {Promise<{ notes: any[], tags: any[], settings: object, sessions: any[], editHistory: any[], backedUpAt: string }>}
      */
     async restore(apiSecret) {
         const response = await fetch('/api/backup', {
