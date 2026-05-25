@@ -2342,12 +2342,33 @@ document.addEventListener('componentsLoaded', () => {
 
         let noteTimestamp;
         if (noteIdToEdit !== null) {
-            const customTs = new Date(`${customDateInput.value}T${customTimeInput.value}`).getTime();
+            let customTs = NaN;
+            if (customDateInput.value && customTimeInput.value) {
+                const [yearStr, monthStr, dayStr] = customDateInput.value.split('-');
+                const [hourStr, minuteStr] = customTimeInput.value.split(':');
+                customTs = new Date(
+                    parseInt(yearStr, 10),
+                    parseInt(monthStr, 10) - 1,
+                    parseInt(dayStr, 10),
+                    parseInt(hourStr, 10) || 0,
+                    parseInt(minuteStr, 10) || 0
+                ).getTime();
+            }
             noteTimestamp = Number.isNaN(customTs) ? noteIdToEdit : customTs;
         } else {
-            noteTimestamp = (!customDateTimeContainer.classList.contains('hidden') && customDateInput.value && customTimeInput.value)
-                ? new Date(`${customDateInput.value}T${customTimeInput.value}`).getTime()
-                : Date.now();
+            let customTs = NaN;
+            if (!customDateTimeContainer.classList.contains('hidden') && customDateInput.value && customTimeInput.value) {
+                const [yearStr, monthStr, dayStr] = customDateInput.value.split('-');
+                const [hourStr, minuteStr] = customTimeInput.value.split(':');
+                customTs = new Date(
+                    parseInt(yearStr, 10),
+                    parseInt(monthStr, 10) - 1,
+                    parseInt(dayStr, 10),
+                    parseInt(hourStr, 10) || 0,
+                    parseInt(minuteStr, 10) || 0
+                ).getTime();
+            }
+            noteTimestamp = Number.isNaN(customTs) ? Date.now() : customTs;
         }
 
         const previousNote = noteIdToEdit !== null ? await fetchNoteById(noteIdToEdit) : null;
@@ -2456,8 +2477,15 @@ document.addEventListener('componentsLoaded', () => {
             cancelEditBtn.classList.remove('hidden');
 
             const noteDate = new Date(note.id);
-            customDateInput.value = noteDate.toISOString().slice(0, 10);
-            customTimeInput.value = noteDate.toTimeString().slice(0, 5);
+            const year = noteDate.getFullYear();
+            const month = String(noteDate.getMonth() + 1).padStart(2, '0');
+            const day = String(noteDate.getDate()).padStart(2, '0');
+            customDateInput.value = `${year}-${month}-${day}`;
+
+            const hours = String(noteDate.getHours()).padStart(2, '0');
+            const minutes = String(noteDate.getMinutes()).padStart(2, '0');
+            customTimeInput.value = `${hours}:${minutes}`;
+
             customDateTimeContainer.classList.remove('hidden');
 
             tagsDropdown.querySelectorAll('input').forEach(cb => {
@@ -2901,7 +2929,28 @@ document.addEventListener('componentsLoaded', () => {
     if (exportDiscordBtn) exportDiscordBtn.addEventListener('click', exportDataToDiscord);
     if (birthdayMonthSelect) birthdayMonthSelect.addEventListener('change', applyBirthdayLimits);
     if (birthdayMonthSelect) applyBirthdayLimits();
-    if (toggleDateTimeBtn) toggleDateTimeBtn.addEventListener('click', () => customDateTimeContainer.classList.toggle('hidden'));
+    if (toggleDateTimeBtn) {
+        toggleDateTimeBtn.addEventListener('click', () => {
+            const isHidden = customDateTimeContainer.classList.contains('hidden');
+            if (isHidden) {
+                if (!customDateInput.value || !customTimeInput.value) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    if (!customDateInput.value) {
+                        customDateInput.value = `${year}-${month}-${day}`;
+                    }
+                    if (!customTimeInput.value) {
+                        customTimeInput.value = `${hours}:${minutes}`;
+                    }
+                }
+            }
+            customDateTimeContainer.classList.toggle('hidden');
+        });
+    }
     if (addTagBtn) addTagBtn.addEventListener('click', addTag);
     if (newTagColorInput && newTagColorWrapper) {
         newTagColorInput.addEventListener('input', () => {
